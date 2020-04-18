@@ -9,7 +9,7 @@ CPP_LIBS  = -lgfortran -lCCfits -lcfitsio -lgmp -lCGAL
 
 ROOT_DIR = .
 SRC_DIR = $(ROOT_DIR)/src
-INC_DIR = $(ROOT_DIR)/inc
+INC_DIR = $(ROOT_DIR)/include
 LIB_DIR = $(ROOT_DIR)/lib
 OBJ_DIR = $(ROOT_DIR)/obj
 $(shell mkdir -p $(OBJ_DIR))
