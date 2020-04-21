@@ -75,7 +75,7 @@ public:
   void defl(double xin,double yin,double& xout,double& yout);
   double kappa(double xin,double yin){};
   void gamma(double xin,double yin,double& gamma_out_x,double& gamma_out_y){};
-  double psi(double xin,double yin){};
+  double psi(double xin,double yin){return 0;};
   void replaceDpsi(double* new_dpsi);
   void addDpsi(double* corrections);
   void updatePert();
@@ -100,6 +100,21 @@ public:
   static FactoryMassModel* getInstance(){
     static FactoryMassModel dum;//Guaranteed to be destroyed. Instantiated on first call.
     return &dum;
+  }
+
+  BaseMassModel* createMassModel(const std::string &modelname,std::vector<Nlpar*> nlpars){
+    if( modelname == "sie" ){
+      for(int i=0;i<nlpars.size();i++){
+	if( nlpars[i]->nam == "pa" ){
+	  nlpars[i]->val += 90.0;	  
+	}
+      }
+      return new Sie(nlpars);
+    } else if ( modelname == "spemd" ){
+      return new Spemd(nlpars);
+    } else {
+      return NULL;
+    }
   }
 
   BaseMassModel* createMassModel(const std::string &modelname,std::vector<Nlpar*> nlpars,double Dls,double Dos){
