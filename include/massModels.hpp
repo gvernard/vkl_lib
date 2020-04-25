@@ -75,7 +75,7 @@ public:
   void defl(double xin,double yin,double& xout,double& yout);
   double kappa(double xin,double yin){};
   void gamma(double xin,double yin,double& gamma_out_x,double& gamma_out_y){};
-  double psi(double xin,double yin){return 0;};
+  double psi(double xin,double yin);
   void replaceDpsi(double* new_dpsi);
   void addDpsi(double* corrections);
   void updatePert();

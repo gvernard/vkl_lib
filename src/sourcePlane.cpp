@@ -254,7 +254,7 @@ void FixedSource::boundPolygon(){
 
 //non-virtual
 bool FixedSource::pointInPolygon(double x,double y){
-  if( x <= this->xmin || x >= this->xmax || y <= this->ymin || y >= this->ymax ){
+  if( x < this->xmin || x > this->xmax || y < this->ymin || y > this->ymax ){
     return false;
   } else {
     return true;
@@ -349,10 +349,10 @@ void FixedSource::createInterpolationWeights(ImagePlane* image){
       
       delete(image->cells[i]);
       InterpolationCell* cell = new InterpolationCell(4);
-      cell->ind[0] = (this->Si-2-ic)*this->Sj + jc;
-      cell->ind[1] = (this->Si-2-ic)*this->Sj + jc+1;
-      cell->ind[2] = (this->Si-2-ic+1)*this->Sj + jc;
-      cell->ind[3] = (this->Si-2-ic+1)*this->Sj + jc+1;
+      cell->ind[0] = (this->Si-1-ic)*this->Sj + jc;
+      cell->ind[1] = (this->Si-1-ic)*this->Sj + jc+1;
+      cell->ind[2] = (this->Si-1-ic+1)*this->Sj + jc;
+      cell->ind[3] = (this->Si-1-ic+1)*this->Sj + jc+1;
       cell->wei[0] = g1*g2*norm;
       cell->wei[1] = g1*g4*norm;
       cell->wei[2] = g3*g2*norm;

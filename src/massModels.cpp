@@ -548,6 +548,53 @@ void Pert::defl(double xin,double yin,double& xout,double& yout){
   yout = ay;
 }
 
+double Pert::psi(double x,double y){
+  double xp,yp;
+  double dx     = abs(this->dpsi->x[1] - this->dpsi->x[0]);
+  double dy     = abs(this->dpsi->y[this->dpsi->Sj] - this->dpsi->y[0]);
+  double norm   = 1.0/(dx*dy);
+  int ic        = 0;
+  int jc        = 0;
+  double g1=0,g2=0,g3=0,g4=0;
+  int indA,indB,indC,indD;
+  double wA,wB,wC,wD;
+  
+  //xp = x;
+  //yp = y;
+
+  if( this->dpsi->pointInPolygon(x,y) ){
+    xp = x - this->dpsi->xmin;
+    yp = y - this->dpsi->ymin;
+    
+    //Indices corresponding to the bottom left pixel
+    jc = (int) floor(xp/dx);
+    ic = (int) floor(yp/dy);
+
+    //The following is for bi-linear interpolation:
+    g1 = (ic+1)*dy - yp;
+    g2 = (jc+1)*dx - xp;
+    g3 = yp - ic*dy;
+    g4 = xp - jc*dx;
+    indC = (this->dpsi->Si-1-ic+1)*this->dpsi->Sj + jc+1;
+    indD = (this->dpsi->Si-1-ic+1)*this->dpsi->Sj + jc;
+    indA = (this->dpsi->Si-1-ic)*this->dpsi->Sj + jc+1;
+    indB = (this->dpsi->Si-1-ic)*this->dpsi->Sj + jc;
+    wA = g3*g4*norm;
+    wB = g2*g3*norm;
+    wC = g1*g4*norm;
+    wD = g1*g2*norm;
+    
+    double val = wA*this->dpsi->src[indA] + wB*this->dpsi->src[indB] + wC*this->dpsi->src[indC] + wD*this->dpsi->src[indD];
+
+    return val;
+  } else {
+    //    std::cout << x << " " << y << std::endl;
+    return 0;
+  }
+  
+}
+
+
 void Pert::getConvergence(ImagePlane* kappa){
   double ddx,ddy;
   int Ni = kappa->Ni;
