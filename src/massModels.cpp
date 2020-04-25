@@ -510,7 +510,6 @@ void Pert::derivativeDirection(int q,int qmax,double den,int* rel_ind,double* co
 }
 
 void Pert::defl(double xin,double yin,double& xout,double& yout){
-  
   double xp = xin - this->dpsi->xmin;
   double yp = this->dpsi->ymax - yin;
 
@@ -548,6 +547,39 @@ void Pert::defl(double xin,double yin,double& xout,double& yout){
   yout = ay;
 }
 
+double Pert::psi(double xin,double yin){
+  double xp = xin - this->dpsi->xmin;
+  double yp = this->dpsi->ymax - yin;
+
+  //Indices corresponding to the top left pixel
+  int jc = (int) floor(xp/this->dj);
+  int ic = (int) floor(yp/this->di);
+
+  double g1 = yp - ic*this->di;
+  double g2 = (ic+1)*this->di - yp;
+  double g3 = xp - jc*this->dj;
+  double g4 = (jc+1)*this->dj - xp;
+  double norm = 1.0/(this->di*this->dj);
+
+  //changing to weights for the top left pixel
+  double w00 = g2*g4;
+  double w01 = g2*g3;
+  double w10 = g1*g4;
+  double w11 = g1*g3;
+
+  double f00,f01,f10,f11;
+
+  f00 = this->dpsi->src[ic*this->dpsi->Sj + jc];
+  f01 = this->dpsi->src[ic*this->dpsi->Sj + jc+1];
+  f10 = this->dpsi->src[(ic+1)*this->dpsi->Sj + jc];
+  f11 = this->dpsi->src[(ic+1)*this->dpsi->Sj + jc+1];
+  double psi = (f00*w00 + f10*w10 + f01*w01 + f11*w11)*norm;
+
+  return psi;
+}
+
+
+/*
 double Pert::psi(double x,double y){
   double xp,yp;
   double dx     = abs(this->dpsi->x[1] - this->dpsi->x[0]);
@@ -591,9 +623,8 @@ double Pert::psi(double x,double y){
     //    std::cout << x << " " << y << std::endl;
     return 0;
   }
-  
 }
-
+*/
 
 void Pert::getConvergence(ImagePlane* kappa){
   double ddx,ddy;
