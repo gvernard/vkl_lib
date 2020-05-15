@@ -14,7 +14,12 @@
 //===============================================================================================================
 void BaseMassModel::setMassPars(std::vector<Nlpar*> nlpars){
   for(int i=0;i<nlpars.size();i++){
-    this->mpars[nlpars[i]->nam] = nlpars[i]->val;
+    if( nlpars[i]->nam == "pa" ){
+      this->mpars[nlpars[i]->nam] = (nlpars[i]->val + 90.0) * 0.01745329251; // in rad
+      //this->mpars[nlpars[i]->nam] = (nlpars[i]->val) * 0.01745329251; // in rad
+    } else {
+      this->mpars[nlpars[i]->nam] = nlpars[i]->val;
+    }
   }
 }
 
@@ -38,14 +43,14 @@ Sie::Sie(std::vector<Nlpar*> nlpars){
 void Sie::defl(double xin,double yin,double& xout,double& yout){
   double b  = this->mpars["b"];
   double q  = this->mpars["q"];
-  double pa = this->mpars["pa"] * 0.01745329251;//in rad
+  double pa = this->mpars["pa"];
   double x0 = this->mpars["x0"];
   double y0 = this->mpars["y0"];
 
   //rotate the coordinate system according to position angle and translate to the lens center
   double x_t =  (xin-x0)*cos(pa) + (yin-y0)*sin(pa);
   double y_t = -(xin-x0)*sin(pa) + (yin-y0)*cos(pa);
-
+  
   if( fabs(x_t) < 0.0001 && fabs(y_t) < 0.0001 ){
     if( std::signbit(x_t) ){
       x_t = -0.0001;
@@ -76,7 +81,7 @@ void Sie::defl(double xin,double yin,double& xout,double& yout){
 double Sie::kappa(double xin,double yin){
   double b  = this->mpars["b"];
   double q  = this->mpars["q"];
-  double pa = this->mpars["pa"] * 0.01745329251;//in rad
+  double pa = this->mpars["pa"];
   double x0 = this->mpars["x0"];
   double y0 = this->mpars["y0"];
 
@@ -103,10 +108,10 @@ double Sie::kappa(double xin,double yin){
 }
 
 
-void Sie::gamma(double xin,double yin,double& gamma_out_x,double& gamma_out_y){
+void Sie::gamma(double xin,double yin,double& gamma_mag,double& gamma_phi){
   double b  = this->mpars["b"];
   double q  = this->mpars["q"];
-  double pa = this->mpars["pa"] * 0.01745329251;//in rad
+  double pa = this->mpars["pa"];
   double x0 = this->mpars["x0"];
   double y0 = this->mpars["y0"];
 
@@ -128,15 +133,13 @@ void Sie::gamma(double xin,double yin,double& gamma_out_x,double& gamma_out_y){
   }
 
   double omega     = q*q*x_t*x_t + y_t*y_t; // this does not depend on using omega, omega', or zeta, as long as I change correctly to these elliptical radii.
-  double z         = atan2(y_t,x_t);        // this is because cos2z = (y^2-x^2)/(x^2+y^2), and sin2z = 2xy
+  double z         = atan2(y_t,x_t);        // this is because cos2z = (y^2-x^2)/(x^2+y^2), and sin2z = 2xy/(x^2+y^2)
   double gamma_x_t = -0.5*b*cos(2*z)/sqrt(omega);
   double gamma_y_t = -0.5*b*sin(2*z)/sqrt(omega);
   
-  //rotate back according to position angle, no need to translate (this is equivalent to rotating by -pa using the same equations as above)
-  double gamma_x =  gamma_x_t*cos(pa) - gamma_y_t*sin(pa);
-  double gamma_y =  gamma_x_t*sin(pa) + gamma_y_t*cos(pa);
-  gamma_out_x = gamma_x;
-  gamma_out_y = gamma_y;
+  //rotate back according to position angle
+  gamma_mag = hypot(gamma_x_t,gamma_y_t);
+  gamma_phi = 0.5*atan2(gamma_y_t,gamma_x_t) + pa; // in rad
 }
 
 double Sie::psi(double xin,double yin){
@@ -158,7 +161,7 @@ void Spemd::defl(double xin,double yin,double& xout,double& yout){
   double q  = this->mpars["q"];
   double e  = this->mpars["e"];
   double b  = pow(this->mpars["b"],2.0*e)*(2.0-2.0*e)/(q*2.0);
-  double pa = this->mpars["pa"] * 0.01745329251;//in rad
+  double pa = this->mpars["pa"];
   double x0 = this->mpars["x0"];
   double y0 = this->mpars["y0"];
   double s2 = this->mpars["s"] * this->mpars["s"];
@@ -714,6 +717,11 @@ CollectionMassModels::CollectionMassModels(){
   this->mpars["gy"] = 0.0;
 }
 CollectionMassModels::CollectionMassModels(std::vector<Nlpar*> nlpars){
+  for(int i=0;i<nlpars.size();i++){
+    if( nlpars[i]->nam == "phi" ){
+      nlpars[i]->val = (nlpars[i]->val + 90.0)*0.01745329251; // convert from EoN to normal cartesian
+    }
+  }
   this->setPhysicalPars(nlpars);
 };
 CollectionMassModels::~CollectionMassModels(){
@@ -735,8 +743,8 @@ void CollectionMassModels::setPhysicalPars(std::vector<Nlpar*> nlpars){
   for(int i=0;i<nlpars.size();i++){
     this->mpars[nlpars[i]->nam] = nlpars[i]->val;
   }
-  this->mpars["gx"]  = this->mpars["g"]*cos(2*this->mpars["phi"]*0.01745329251);
-  this->mpars["gy"]  = this->mpars["g"]*sin(2*this->mpars["phi"]*0.01745329251);
+  this->mpars["gx"] = this->mpars["g"]*cos(2*this->mpars["phi"]);
+  this->mpars["gy"] = this->mpars["g"]*sin(2*this->mpars["phi"]);
 }
 
 void CollectionMassModels::all_defl(double xin,double yin,double& xout,double& yout){
@@ -794,36 +802,40 @@ void CollectionMassModels::all_kappa(ImagePlane* image,ImagePlane* kappa_tot){
   }
 }
 
-void CollectionMassModels::all_gamma(double xin,double yin,double& gamma_x,double& gamma_y){
-  gamma_x = 0.0;
-  gamma_y = 0.0;
-  double dumx = 0.0;
-  double dumy = 0.0;
+void CollectionMassModels::all_gamma(double xin,double yin,double& gamma_mag,double& gamma_phi){
+  double gamma_x = 0.0;
+  double gamma_y = 0.0;
+  double mag = 0.0;
+  double phi = 0.0;
   for(int i=0;i<this->models.size();i++){
-    this->models[i]->gamma(xin,yin,dumx,dumy);
-    gamma_x += dumx;
-    gamma_y += dumy;
+    this->models[i]->gamma(xin,yin,mag,phi);
+    gamma_x += mag*cos(2*phi);
+    gamma_y += mag*sin(2*phi);
   }
   gamma_x += this->mpars["gx"];
   gamma_y += this->mpars["gy"];
+  gamma_mag = hypot(gamma_x,gamma_y);
+  gamma_phi = 0.5*atan2(gamma_y,gamma_x);
 }
 
-void CollectionMassModels::all_gamma(ImagePlane* image,ImagePlane* gamma_x,ImagePlane* gamma_y){
+void CollectionMassModels::all_gamma(ImagePlane* image,ImagePlane* gamma_mag,ImagePlane* gamma_phi){
   double xin,yin;
-  double dumx = 0.0;
-  double dumy = 0.0;
+  double mag,phi;
   for(int j=0;j<image->Nm;j++){
     xin = image->x[j];
     yin = image->y[j];
-    double gamma_x_t = 0.0;
-    double gamma_y_t = 0.0;
+    double gamma_x = 0.0;
+    double gamma_y = 0.0;
     for(int i=0;i<this->models.size();i++){
-      this->models[i]->gamma(xin,yin,dumx,dumy);
-      gamma_x_t += dumx;
-      gamma_y_t += dumy;
+      this->models[i]->gamma(xin,yin,mag,phi);
+      gamma_x += mag*cos(2*phi);
+      gamma_y += mag*sin(2*phi);
     }
-    gamma_x->img[j] = gamma_x_t + this->mpars["gx"];
-    gamma_y->img[j] = gamma_y_t + this->mpars["gy"];
+    gamma_x += this->mpars["gx"];
+    gamma_y += this->mpars["gy"];
+
+    gamma_mag->img[j] = hypot(gamma_x,gamma_y);
+    gamma_phi->img[j] = 0.5*atan2(gamma_y,gamma_x);
   }
 }
 
