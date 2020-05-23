@@ -840,15 +840,13 @@ void CollectionMassModels::all_gamma(ImagePlane* image,ImagePlane* gamma_mag,Ima
 }
 
 double CollectionMassModels::detJacobian(double xin,double yin){
-  double gamma_x,gamma_y;
-  this->all_gamma(xin,yin,gamma_x,gamma_y);
-  return pow(1.0 - this->all_kappa(xin,yin),2) - pow(gamma_x,2) - pow(gamma_y,2);
+  double gamma_mag,gamma_phi;
+  this->all_gamma(xin,yin,gamma_mag,gamma_phi);
+  return pow(1.0 - this->all_kappa(xin,yin),2) - pow(gamma_mag,2);
 }
 
 void CollectionMassModels::detJacobian(ImagePlane* image,ImagePlane* detA){
   double xin,yin;
-  double gamma_x,gamma_y,ktot;
-
   for(int j=0;j<image->Nm;j++){
     xin = image->x[j];
     yin = image->y[j];
