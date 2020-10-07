@@ -206,7 +206,7 @@ void FixedSource::setGridRect(double width,double height){
   double di = height/Si;
   double dj = width/Sj;
 
-  // xmax,xmin are the x coordinates of the leftmost and eightmost pixels.
+  // xmax,xmin are the x coordinates of the leftmost and rightmost pixels.
   // REMEMBER: xmax-xmin != width (Nj*dj).
   // Similarly for y.
   this->xmin = -j0*dj;

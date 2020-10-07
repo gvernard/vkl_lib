@@ -160,7 +160,8 @@ Spemd::Spemd(std::vector<Nlpar*> nlpars){
 void Spemd::defl(double xin,double yin,double& xout,double& yout){
   double q  = this->mpars["q"];
   double e  = this->mpars["e"];
-  double b  = pow(this->mpars["b"],2.0*e)*(2.0-2.0*e)/(q*2.0);
+  double b  = pow(this->mpars["b"],2.0*e)*(2.0-2.0*e)/(q*2.0); // this is correct!
+  //double b  = pow(this->mpars["b"],2.0*e)*(2.0-2.0*e);
   double pa = this->mpars["pa"];
   double x0 = this->mpars["x0"];
   double y0 = this->mpars["y0"];
