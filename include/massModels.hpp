@@ -14,6 +14,7 @@
 
 extern "C"{
   void fastelldefl_(double* x1,double* x2,double* b,double* g,double* q,double* s2,double* defl);
+  void fastellmag_(double* x1,double* x2,double* b,double* g,double* q,double* s2,double* defl,double* jacob);
 }
 
 
@@ -50,8 +51,8 @@ class Spemd: public BaseMassModel{
 public:
   Spemd(std::vector<Nlpar*> nlpars);
   void defl(double xin,double yin,double& xout,double& yout);
-  double kappa(double xin,double yin){};
-  void gamma(double xin,double yin,double& gamma_mag,double& gamma_phi){};
+  double kappa(double xin,double yin);
+  void gamma(double xin,double yin,double& gamma_mag,double& gamma_phi);
   double psi(double xin,double yin){};
 };
 

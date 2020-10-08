@@ -185,6 +185,50 @@ void Spemd::defl(double xin,double yin,double& xout,double& yout){
   yout = ay;
 }
 
+double Spemd::kappa(double xin,double yin){
+  double q  = this->mpars["q"];
+  double e  = this->mpars["e"];
+  double b  = pow(this->mpars["b"],2.0*e)*(2.0-2.0*e)/(q*2.0); // this is correct!
+  double pa = this->mpars["pa"];
+  double x0 = this->mpars["x0"];
+  double y0 = this->mpars["y0"];
+  double s2 = this->mpars["s"] * this->mpars["s"];
+
+  //rotate the coordinate system according to position angle and translate to the lens center
+  double x_t =  (xin-x0)*cos(pa) + (yin-y0)*sin(pa);
+  double y_t = -(xin-x0)*sin(pa) + (yin-y0)*cos(pa);
+
+  double omega = x_t*x_t + y_t*y_t/(q*q); // this does not depend on using omega, omega', or zeta, as long as I change correctly to these elliptical radii.
+  double k = b/pow(omega+s2,e);
+  return k;
+}
+
+void Spemd::gamma(double xin,double yin,double& gamma_mag,double& gamma_phi){
+  double q  = this->mpars["q"];
+  double e  = this->mpars["e"];
+  double b  = pow(this->mpars["b"],2.0*e)*(2.0-2.0*e)/(q*2.0); // this is correct!
+  //double b  = pow(this->mpars["b"],2.0*e)*(2.0-2.0*e);
+  double pa = this->mpars["pa"];
+  double x0 = this->mpars["x0"];
+  double y0 = this->mpars["y0"];
+  double s2 = this->mpars["s"] * this->mpars["s"];
+  double defl[2] = {0.0,0.0};
+  double jacob[2*2] = {0.0,0.0,0.0,0.0};
+
+  //rotate according to position angle and translate to the lens center
+  double x_t =  (xin-x0)*cos(pa) + (yin-y0)*sin(pa);
+  double y_t = -(xin-x0)*sin(pa) + (yin-y0)*cos(pa);
+
+  fastellmag_(&x_t,&y_t,&b,&e,&q,&s2,defl,jacob);
+
+  double gamma_x_t = (jacob[0] - jacob[3])/2.0;
+  double gamma_y_t = jacob[1];
+  
+  //rotate back according to position angle
+  gamma_mag = hypot(gamma_x_t,gamma_y_t);
+  gamma_phi = 0.5*atan2(gamma_y_t,gamma_x_t) + pa; // in rad
+}
+
 //Derived class from BaseMassModel: Pert (perturbations on a grid)
 //===============================================================================================================
 Pert::Pert(int a,int b,double c,double d,std::string reg){
