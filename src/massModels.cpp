@@ -162,6 +162,7 @@ void Spemd::defl(double xin,double yin,double& xout,double& yout){
   double e  = this->mpars["e"];
   double b  = pow(this->mpars["b"],2.0*e)*(2.0-2.0*e)/(q*2.0); // this is correct!
   //double b  = pow(this->mpars["b"],2.0*e)*(2.0-2.0*e);
+  //double b = 2*(1-e)*pow(this->mpars["b"],2.0)/((1+q)*(pow(this->mpars["b"],2-2*e)-1));
   double pa = this->mpars["pa"];
   double x0 = this->mpars["x0"];
   double y0 = this->mpars["y0"];
@@ -189,6 +190,7 @@ double Spemd::kappa(double xin,double yin){
   double q  = this->mpars["q"];
   double e  = this->mpars["e"];
   double b  = pow(this->mpars["b"],2.0*e)*(2.0-2.0*e)/(q*2.0); // this is correct!
+  //double b = 2*(1-e)*pow(this->mpars["b"],2.0)/((1+q)*(pow(this->mpars["b"],2-2*e)-1));
   double pa = this->mpars["pa"];
   double x0 = this->mpars["x0"];
   double y0 = this->mpars["y0"];
@@ -208,6 +210,7 @@ void Spemd::gamma(double xin,double yin,double& gamma_mag,double& gamma_phi){
   double e  = this->mpars["e"];
   double b  = pow(this->mpars["b"],2.0*e)*(2.0-2.0*e)/(q*2.0); // this is correct!
   //double b  = pow(this->mpars["b"],2.0*e)*(2.0-2.0*e);
+  //double b = 2*(1-e)*pow(this->mpars["b"],2.0)/((1+q)*(pow(this->mpars["b"],2-2*e)-1));
   double pa = this->mpars["pa"];
   double x0 = this->mpars["x0"];
   double y0 = this->mpars["y0"];

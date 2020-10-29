@@ -26,7 +26,8 @@ public:
   virtual double value(double x,double y) = 0;
   virtual void outputProfile(std::string filename) = 0;
   virtual void scaleProfile() = 0;
-
+  virtual void inverseScaleProfile() = 0;
+  
   void profile(int Sj,int Si,double* sx,double* sy,double* s);
   void writeProfile(std::string filename,double half_range);
 };
@@ -53,6 +54,7 @@ public:
   double function_value(double x,double y);
   std::vector<double> extent();
   void scaleProfile();
+  void inverseScaleProfile();
 private:
   const double fac = 0.01745329251; // conversion from degrees to rad
 };
@@ -64,6 +66,7 @@ public:
   double function_value(double x,double y);
   std::vector<double> extent();
   void scaleProfile();
+  void inverseScaleProfile(){};
 private:
   const double fac = 0.01745329251; // conversion from degrees to rad
 };
@@ -108,6 +111,7 @@ public:
   double value(double x,double y);
   void outputProfile(std::string filename);
   void scaleProfile(){};
+  void inverseScaleProfile(){};
 };
 
 
@@ -131,6 +135,7 @@ public:
   double value(double x,double y);
   void outputProfile(std::string filename);
   void scaleProfile(){};
+  void inverseScaleProfile(){};
   double sourceExtent();
   
 private:
@@ -155,7 +160,8 @@ public:
   double value(double x,double y);
   void outputProfile(std::string filename);
   void scaleProfile();
-
+  void inverseScaleProfile(){};
+  
 private:
   int Ni;
   int Nj;

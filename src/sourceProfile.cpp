@@ -88,12 +88,20 @@ Sersic::Sersic(std::map<std::string,double> pars){
   this->type          = "sersic";
   this->pars["n"]     = pars["n"];
   this->pars["r_eff"] = pars["r_eff"];
-  this->pars["M_tot"] = pars["M_tot"];
   this->pars["q"]     = pars["q"];
   this->pars["x0"]    = pars["x0"];
   this->pars["y0"]    = pars["y0"];
   this->pars["pa"]    = pars["pa"];
-  this->scaleProfile();
+
+  if( pars.find("M_tot") == pars.end() ){
+    // not found
+    this->pars["i_eff"] = pars["i_eff"];
+    this->inverseScaleProfile();    
+  } else {
+    // found
+    this->pars["M_tot"] = pars["M_tot"];
+    this->scaleProfile();
+  }
 }
 
 double Sersic::function_value(double x,double y){
@@ -113,6 +121,12 @@ void Sersic::scaleProfile(){
   double bn = 1.9992*this->pars["n"] - 0.3271;//From Capaccioli 1989
   double den = pow(this->pars["r_eff"],2)*2*M_PI*this->pars["n"]*exp(bn)*tgamma(2*this->pars["n"])/pow(bn,2*this->pars["n"]);
   this->pars["i_eff"] = this->pars["q"]*pow(10.0,-0.4*this->pars["M_tot"])/den;
+}
+
+void Sersic::inverseScaleProfile(){
+  double bn = 1.9992*this->pars["n"] - 0.3271;//From Capaccioli 1989
+  double fac = this->pars["i_eff"]*pow(this->pars["r_eff"],2)*2*M_PI*this->pars["n"]*exp(bn)*tgamma(2*this->pars["n"])/(this->pars["q"]*pow(bn,2*this->pars["n"]));
+  this->pars["M_tot"] = -2.5*log10(fac);
 }
 
 std::vector<double> Sersic::extent(){
