@@ -95,10 +95,10 @@ void BaseSourcePlane::constructL(ImagePlane* image){
 //===============================================================================================================
 
 //virtual
-FixedSource::FixedSource(int i,int j,double size,std::string reg_scheme){
+FixedSource::FixedSource(int Ni,int Nj,double size,std::string reg_scheme){
   type = "fixed";
-  Si   = i;
-  Sj   = j;
+  Si   = Ni;
+  Sj   = Nj;
   Sm   = Si*Sj;
   H.Ti = Sm;
   H.Tj = Sm;
@@ -128,11 +128,11 @@ FixedSource::FixedSource(int i,int j,double size,std::string reg_scheme){
   }
 }
 
-FixedSource::FixedSource(int i,int j,double width,double height,std::string reg_scheme){
+FixedSource::FixedSource(int Ni,int Nj,double width,double height,std::string reg_scheme){
   type = "fixed";
   reg  = reg_scheme;
-  Si   = i;
-  Sj   = j;
+  Si   = Ni;
+  Sj   = Nj;
   Sm   = Si*Sj;
   H.Ti = Sm;
   H.Tj = Sm;
@@ -149,11 +149,11 @@ FixedSource::FixedSource(int i,int j,double width,double height,std::string reg_
   this->boundPolygon();
 }
 
-FixedSource::FixedSource(int i,int j,double xmin,double xmax,double ymin,double ymax,std::string reg_scheme){
+FixedSource::FixedSource(int Ni,int Nj,double xmin,double xmax,double ymin,double ymax,std::string reg_scheme){
   type = "fixed";
   reg  = reg_scheme;
-  Si   = i;
-  Sj   = j;
+  Si   = Ni;
+  Sj   = Nj;
   Sm   = Si*Sj;
   H.Ti = Sm;
   H.Tj = Sm;

@@ -87,9 +87,9 @@ public:
 
 class FixedSource: public BaseSourcePlane {
 public:
-  FixedSource(int source_i,int source_j,double size,std::string reg_scheme);
-  FixedSource(int i,int j,double width,double height,std::string reg_scheme);
-  FixedSource(int i,int j,double xmin,double xmax,double ymin,double ymax,std::string reg_scheme);
+  FixedSource(int Ni,int Nj,double size,std::string reg_scheme);
+  FixedSource(int Ni,int Nj,double width,double height,std::string reg_scheme);
+  FixedSource(int Ni,int Nj,double xmin,double xmax,double ymin,double ymax,std::string reg_scheme);
   FixedSource(const FixedSource& source) : BaseSourcePlane(source) {};
   virtual FixedSource* clone(){
     return new FixedSource(*this);
