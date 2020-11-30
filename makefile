@@ -16,8 +16,8 @@ $(shell mkdir -p $(OBJ_DIR))
 $(shell mkdir -p $(LIB_DIR))
 
 
-DEPS = imagePlane.hpp massModels.hpp sourceProfile.hpp sourcePlane.hpp nonLinearPars.hpp tableDefinition.hpp covKernels.hpp
-OBJ  = imagePlane.o   massModels.o   sourceProfile.o   sourcePlane.o   nonLinearPars.o   fastell.o
+DEPS = rectGrid.hpp imagePlane.hpp massModels.hpp sourceProfile.hpp sourcePlane.hpp nonLinearPars.hpp tableDefinition.hpp covKernels.hpp
+OBJ  = rectGrid.o   imagePlane.o   massModels.o   sourceProfile.o   sourcePlane.o   nonLinearPars.o   fastell.o
 FULL_DEPS = $(patsubst %,$(INC_DIR)/%,$(DEPS)) #Pad names with dir
 FULL_OBJ  = $(patsubst %,$(OBJ_DIR)/%,$(OBJ))  #Pad names with dir
 #$(info $$OBJ is [${FPROJECT_DEPS}])
