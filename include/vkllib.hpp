@@ -1,6 +1,8 @@
 #ifndef VKLLIB_HPP
 #define VKLLIB_HPP
 
+#include "rectGrid.hpp"
+#include "fitsInterface.hpp"
 #include "covKernels.hpp"
 #include "imagePlane.hpp"
 #include "massModels.hpp"
