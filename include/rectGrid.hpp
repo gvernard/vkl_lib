@@ -45,6 +45,8 @@ public:
   void calculate_zx(std::string accuracy);
   void calculate_zy(std::string accuracy);
   void calculate_zxy(std::string accuracy);
+  void calculate_zxx(std::string accuracy);
+  void calculate_zyy(std::string accuracy);
 
   
 private:
@@ -53,12 +55,58 @@ private:
   void multiplyVectorByScalar(std::vector<double> &v,double k);
   
   void calculate_derivative_1(int Nh,int Nv,double* h,double* zz,double* zout,std::string accuracy);
-  const std::vector<double> derivative_1_forward_1{-1,1};
-  const std::vector<double> derivative_1_forward_2{-1.5,2.0,-0.5};
-  const std::vector<double> derivative_1_backward_1{-1,1};
-  const std::vector<double> derivative_1_backward_2{0.5,-2,1.5};
-  const std::vector<double> derivative_1_central_2{-0.5,0.0,0.5};
+  void calculate_derivative_2(int Nh,int Nv,double* h,double* zz,double* zout,std::string accuracy);
+
+  // Finite difference coefficients and relative indices.
+  // 1st derivatives
+  static const std::vector<int>    derivative_1_forward_1_index;
+  static const std::vector<double> derivative_1_forward_1_coeff;
+  static const std::vector<int>    derivative_1_forward_2_index;
+  static const std::vector<double> derivative_1_forward_2_coeff;
+  static const std::vector<int>    derivative_1_backward_1_index;
+  static const std::vector<double> derivative_1_backward_1_coeff;
+  static const std::vector<int>    derivative_1_backward_2_index;
+  static const std::vector<double> derivative_1_backward_2_coeff;
+  static const std::vector<int>    derivative_1_central_2_index;
+  static const std::vector<double> derivative_1_central_2_coeff;
+  // 2nd derivatives
+  static const std::vector<int>    derivative_2_forward_1_index;
+  static const std::vector<double> derivative_2_forward_1_coeff;
+  static const std::vector<int>    derivative_2_forward_2_index;
+  static const std::vector<double> derivative_2_forward_2_coeff;
+  static const std::vector<int>    derivative_2_backward_1_index;
+  static const std::vector<double> derivative_2_backward_1_coeff;
+  static const std::vector<int>    derivative_2_backward_2_index;
+  static const std::vector<double> derivative_2_backward_2_coeff;
+  static const std::vector<int>    derivative_2_central_2_index;
+  static const std::vector<double> derivative_2_central_2_coeff;
+
   double weighted_sum(int i0,int j0,std::vector<int> rel_i,std::vector<int> rel_j,std::vector<double> coeff,int z_Nx,double* zz);
 };
+
+// 2nd derivatives
+const std::vector<int>    RectGrid::derivative_1_forward_1_index({0,1});
+const std::vector<double> RectGrid::derivative_1_forward_1_coeff({-1,1});
+const std::vector<int>    RectGrid::derivative_1_forward_2_index({0,1,2});
+const std::vector<double> RectGrid::derivative_1_forward_2_coeff({-1.5,2.0,-0.5});
+const std::vector<int>    RectGrid::derivative_1_backward_1_index({-1,0});
+const std::vector<double> RectGrid::derivative_1_backward_1_coeff({-1,1});
+const std::vector<int>    RectGrid::derivative_1_backward_2_index({-2,-1,0});
+const std::vector<double> RectGrid::derivative_1_backward_2_coeff({0.5,-2,1.5});
+const std::vector<int>    RectGrid::derivative_1_central_2_index({-1,0,1});
+const std::vector<double> RectGrid::derivative_1_central_2_coeff({-0.5,0.0,0.5});
+// 2nd derivatives
+const std::vector<int>    RectGrid::derivative_2_forward_1_index({0,1,2});
+const std::vector<double> RectGrid::derivative_2_forward_1_coeff({1,-2,1});  
+const std::vector<int>    RectGrid::derivative_2_forward_2_index({0,1,2,3});
+const std::vector<double> RectGrid::derivative_2_forward_2_coeff({2,-5,4,-1});
+const std::vector<int>    RectGrid::derivative_2_backward_1_index({-2,-1,0});
+const std::vector<double> RectGrid::derivative_2_backward_1_coeff({1,-2,1});  
+const std::vector<int>    RectGrid::derivative_2_backward_2_index({-3,-2,-1,0});
+const std::vector<double> RectGrid::derivative_2_backward_2_coeff({-1,4,-5,2});
+const std::vector<int>    RectGrid::derivative_2_central_2_index({-1,0,1});
+const std::vector<double> RectGrid::derivative_2_central_2_coeff({1,-2,1});
+
+
 
 #endif /* RECT_GRID_HPP */

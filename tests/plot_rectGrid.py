@@ -11,8 +11,8 @@ b1_max = 8.2338171
 b2_min = 4.0344134
 b2_max = 7.1372285
 
-Npix_b1 = 77
-Npix_b2 = 77
+Npix_b1 = 85
+Npix_b2 = 50
 
 
 x = np.linspace(b1_min,b1_max,Npix_b1)
@@ -22,6 +22,9 @@ z  = 2*np.cos(xx*yy/3.0) + np.cos(5.0*xx)
 zx = -2*yy*np.sin(xx*yy/3.0)/3.0 - 5*np.sin(5*xx)
 zy = -2*np.sin(xx*yy/3.0)*xx/3.0
 zxy = -2*np.sin(xx*yy/3.0)/3.0-2.0*np.cos(xx*yy/3.0)*xx*yy/9.0
+zxx = -2*np.cos(xx*yy/3.0)*xx*yy/9.0 - 25*np.cos(5*xx)
+zyy = -2*np.cos(xx*yy/3.0)*xx*xx/9.0
+
 
 hdu = fits.PrimaryHDU(z)
 hdu.writeto('python_z.fits',overwrite=True)
@@ -34,6 +37,12 @@ hdu.writeto('python_zy.fits',overwrite=True)
 
 hdu = fits.PrimaryHDU(zxy)
 hdu.writeto('python_zxy.fits',overwrite=True)
+
+hdu = fits.PrimaryHDU(zxx)
+hdu.writeto('python_zxx.fits',overwrite=True)
+
+hdu = fits.PrimaryHDU(zyy)
+hdu.writeto('python_zyy.fits',overwrite=True)
 
 
 '''

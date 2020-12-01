@@ -7,8 +7,8 @@
 int main(){
 
   // create a RectGrid object
-  int Nx = 77;
-  int Ny = 77;
+  int Nx = 85;
+  int Ny = 50;
   double b1_min = 4.7035368;
   double b1_max = 8.2338171;
   double b2_min = 4.0344134;
@@ -31,7 +31,6 @@ int main(){
   mygrid.calculate_zx("1");
   FitsInterface::writeFits(Nx,Ny,mygrid.zx,"vkl_zx.fits");
 
-
   // calculate the first derivative along y
   mygrid.calculate_zy("1");
   FitsInterface::writeFits(Nx,Ny,mygrid.zx,"vkl_zy.fits");
@@ -39,6 +38,14 @@ int main(){
   // calculate the mixed derivative along x and y
   mygrid.calculate_zxy("1");
   FitsInterface::writeFits(Nx,Ny,mygrid.zxy,"vkl_zxy.fits");
+
+  // calculate the second derivative along x
+  mygrid.calculate_zxx("2");
+  FitsInterface::writeFits(Nx,Ny,mygrid.zxx,"vkl_zxx.fits");
+
+  // calculate the second derivative along y
+  mygrid.calculate_zyy("2");
+  FitsInterface::writeFits(Nx,Ny,mygrid.zyy,"vkl_zyy.fits");
 
     
 }

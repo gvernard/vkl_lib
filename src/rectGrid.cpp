@@ -201,7 +201,7 @@ void RectGrid::calculate_zy(std::string accuracy){
   this->calculate_derivative_1(this->Ny,this->Nx,this->center_y,this->zy,tmp_1,accuracy);
   for(int i=0;i<this->Ny;i++){
     for(int j=0;j<this->Nx;j++){
-      this->zy[j*this->Ny+i] = tmp_1[i*this->Nx+j];
+      this->zy[i*this->Nx+j] = tmp_1[j*this->Ny+i];
     }
   }
   free(tmp_1);
@@ -215,27 +215,46 @@ void RectGrid::calculate_zxy(std::string accuracy){
   this->calculate_derivative_1(this->Nx,this->Ny,this->center_x,this->zy,this->zxy,accuracy);  
 }
 
+void RectGrid::calculate_zxx(std::string accuracy){
+  this->zxx = (double*) calloc(this->Nz,sizeof(double));
+  this->calculate_derivative_2(this->Nx,this->Ny,this->center_x,this->z,this->zxx,accuracy);
+}
 
-
+void RectGrid::calculate_zyy(std::string accuracy){
+  this->zyy = (double*) calloc(this->Nz,sizeof(double));
+  double* tmp_1 = (double*) calloc(this->Nz,sizeof(double));
+  for(int i=0;i<this->Ny;i++){
+    for(int j=0;j<this->Nx;j++){
+      this->zyy[j*this->Ny+i] = this->z[i*this->Nx+j];
+    }
+  }
+  this->calculate_derivative_2(this->Ny,this->Nx,this->center_y,this->zyy,tmp_1,accuracy);
+  for(int i=0;i<this->Ny;i++){
+    for(int j=0;j<this->Nx;j++){
+      this->zyy[i*this->Nx+j] = tmp_1[j*this->Ny+i];
+    }
+  }
+  free(tmp_1);
+}
 
 
 void RectGrid::calculate_derivative_1(int Nh,int Nv,double* h,double* zz,double* zout,std::string accuracy){
-  // calculate the first derivative along the horizontal axis
+  // calculate the FIRST derivative along the horizontal axis
   int h0,v0;
   std::vector<int> rel_index_v;
   std::vector<int> rel_index_h;
   std::vector<double> coeff;
-  double dh = h[1] - h[0];
+  double dh = h[1]-h[0];
   
   // 1st column
   if( accuracy == "1" ){
     rel_index_v = {0,0};
-    rel_index_h = {0,1};
-    coeff       = this->derivative_1_forward_1;
+    rel_index_h = this->derivative_1_forward_1_index;
+    coeff       = this->derivative_1_forward_1_coeff;
   } else {
     rel_index_v = {0,0,0};
-    rel_index_h = {0,1,2};
-    coeff       = this->derivative_1_forward_2;
+    rel_index_h = this->derivative_1_forward_2_index;
+    coeff       = this->derivative_1_forward_2_coeff;
   }
   h0 = 0;
   for(int v=0;v<Nv;v++){
@@ -245,12 +264,12 @@ void RectGrid::calculate_derivative_1(int Nh,int Nv,double* h,double* zz,double*
   // last column
   if( accuracy == "1" ){
     rel_index_v = {0,0};
-    rel_index_h = {-1,0};
-    coeff       = this->derivative_1_backward_1;
+    rel_index_h = this->derivative_1_backward_1_index;
+    coeff       = this->derivative_1_backward_1_coeff;
   } else {
     rel_index_v = {0,0,0};
-    rel_index_h = {-2,-1,0};
-    coeff       = this->derivative_1_backward_2;
+    rel_index_h = this->derivative_1_backward_2_index;
+    coeff       = this->derivative_1_backward_2_coeff;
   }
   h0 = Nh-1;
   for(int v=0;v<Nv;v++){
@@ -259,11 +278,61 @@ void RectGrid::calculate_derivative_1(int Nh,int Nv,double* h,double* zz,double*
 
   // middle chunk
   rel_index_v = {0,0,0};
-  rel_index_h = {-1,0,1};
-  coeff       = this->derivative_1_central_2;
+  rel_index_h = this->derivative_1_central_2_index;
+  coeff       = this->derivative_1_central_2_coeff;
   for(int v=0;v<Nv;v++){
     for(int h=1;h<Nh-1;h++){
       zout[v*Nh+h] = this->weighted_sum(v,h,rel_index_v,rel_index_h,coeff,Nh,zz)/dh;
+    }
+  }  
+}
+
+
+void RectGrid::calculate_derivative_2(int Nh,int Nv,double* h,double* zz,double* zout,std::string accuracy){
+  // calculate the SECOND derivative along the horizontal axis
+  int h0,v0;
+  std::vector<int> rel_index_v;
+  std::vector<int> rel_index_h;
+  std::vector<double> coeff;
+  double dh2 = pow(h[1]-h[0],2);
+  
+  // 1st column
+  if( accuracy == "1" ){
+    rel_index_v = {0,0,0};
+    rel_index_h = this->derivative_2_forward_1_index;
+    coeff       = this->derivative_2_forward_1_coeff;
+  } else {
+    rel_index_v = {0,0,0,0};
+    rel_index_h = this->derivative_2_forward_2_index;
+    coeff       = this->derivative_2_forward_2_coeff;
+  }
+  h0 = 0;
+  for(int v=0;v<Nv;v++){
+    zout[v*Nh+h0] = this->weighted_sum(v,h0,rel_index_v,rel_index_h,coeff,Nh,zz)/dh2;
+  }
+
+  // last column
+  if( accuracy == "1" ){
+    rel_index_v = {0,0,0};
+    rel_index_h = this->derivative_2_backward_1_index;
+    coeff       = this->derivative_2_backward_1_coeff;
+  } else {
+    rel_index_v = {0,0,0,0};
+    rel_index_h = this->derivative_2_backward_2_index;
+    coeff       = this->derivative_2_backward_2_coeff;
+  }
+  h0 = Nh-1;
+  for(int v=0;v<Nv;v++){
+    zout[v*Nh+h0] = this->weighted_sum(v,h0,rel_index_v,rel_index_h,coeff,Nh,zz)/dh2;
+  }
+
+  // middle chunk
+  rel_index_v = {0,0,0};
+  rel_index_h = this->derivative_2_central_2_index;
+  coeff       = this->derivative_2_central_2_coeff;
+  for(int v=0;v<Nv;v++){
+    for(int h=1;h<Nh-1;h++){
+      zout[v*Nh+h] = this->weighted_sum(v,h,rel_index_v,rel_index_h,coeff,Nh,zz)/dh2;
     }
   }  
 }
