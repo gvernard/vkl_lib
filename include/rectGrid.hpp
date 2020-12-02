@@ -59,19 +59,19 @@ public:
   void calculate_zxy();
   void calculate_zxx();
   void calculate_zyy();
-
-  
+    
 private:
   void common_constructor(int Nx,int Ny,double xmin,double xmax,double ymin,double ymax,std::map<std::string,std::string> options);
-  void readGridValues(double* field,const std::string filepath);
 
   void multiply_vector_scalar(std::vector<double> &v,double k);
   void multiply_table_vector(int Nrows,int Ncols,double* tab_input,double* vec_input,double* vec_output);
   void multiply_table_table(int Nrows_1,int Ncols_1,int N_cols_2,double* tab_input_1,double* tab_input_2,double* tab_output);
   double multiply_vector_vector(int N,double* vec_1,double* vec_2);
-  
+
   void calculate_derivative_1(int Nh,int Nv,double* h,double* zz,double* zout);
   void calculate_derivative_2(int Nh,int Nv,double* h,double* zz,double* zout);
+
+  double weighted_sum(int i0,int j0,std::vector<int> rel_i,std::vector<int> rel_j,std::vector<double> coeff,int z_Nx,double* zz);
 
   // Finite difference coefficients and relative indices.
   // 1st derivatives
@@ -96,8 +96,6 @@ private:
   static const std::vector<double> derivative_2_backward_2_coeff;
   static const std::vector<int>    derivative_2_central_2_index;
   static const std::vector<double> derivative_2_central_2_coeff;
-
-  double weighted_sum(int i0,int j0,std::vector<int> rel_i,std::vector<int> rel_j,std::vector<double> coeff,int z_Nx,double* zz);
 };
 
 #endif /* RECT_GRID_HPP */

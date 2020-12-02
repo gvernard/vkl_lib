@@ -1,6 +1,7 @@
 #define _USE_MATH_DEFINES
 
 #include "sourceProfile.hpp"
+#include "fitsInterface.hpp"
 
 #include <iostream>
 #include <string>
@@ -17,8 +18,6 @@
 #include <CGAL/Delaunay_triangulation_adaptation_policies_2.h>
 
 #include <CGAL/Polygon_2_algorithms.h>
-
-#include <CCfits/CCfits>
 
 typedef CGAL::Exact_predicates_inexact_constructions_kernel            K;
 typedef CGAL::Triangulation_vertex_base_with_info_2<unsigned int,K>    Vb;
@@ -41,7 +40,7 @@ void BaseProfile::writeProfile(std::string filename,double half_range){
   // produces a square image centered at (0,0) on the source plane
 
   // create grid of source brightness profile
-  std::valarray<double> array(output_res*output_res);
+  double* array = (double*) malloc(output_res*output_res*sizeof(double));
   double dpix = 2.0*half_range/output_res;
   for(int i=0;i<output_res;i++){
     for(int j=0;j<output_res;j++){
@@ -60,22 +59,11 @@ void BaseProfile::writeProfile(std::string filename,double half_range){
   //  std::cout << sum << std::endl;
   
   //Write FITS:
-  long naxis    = 2;
-  long naxes[2] = {(long) output_res,(long) output_res};
-  long Ntot = (long) output_res*output_res;
-
-  std::unique_ptr<CCfits::FITS> pFits(nullptr);
-  pFits.reset( new CCfits::FITS("!"+filename,DOUBLE_IMG,naxis,naxes) );
-  
-  std::vector<long> extAx(2,(long) output_res);
-  std::string newName("NEW-EXTENSION");
-  CCfits::ExtHDU* imageExt = pFits->addImage(newName,DOUBLE_IMG,extAx);
-
-  long fpixel(1);
-  imageExt->write(fpixel,(long) Ntot,array);
-  pFits->pHDU().addKey("WIDTH",2.0*half_range,"width of the image"); 
-  pFits->pHDU().addKey("HEIGHT",2.0*half_range,"height of the image"); 
-  pFits->pHDU().write(fpixel,Ntot,array); 
+  std::vector<std::string> key{"WIDTH","HEIGHT"};
+  std::vector<std::string> val{std::to_string(2*half_range),std::to_string(2*half_range)};
+  std::vector<std::string> txt{"width of the image in arcsec","height of the image in arcsec"};
+  FitsInterface::writeFits(output_res,output_res,array,key,val,txt,filename);
+  free(array);
 }
 
 

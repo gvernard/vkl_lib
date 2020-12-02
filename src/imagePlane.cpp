@@ -3,10 +3,10 @@
 #include <cmath>
 #include <fstream>
 #include <cstdlib>
-#include <CCfits/CCfits>
+#include <iostream>
 
 #include "tableDefinition.hpp"
-
+#include "fitsInterface.hpp"
 
 //ImagePlane class implementation
 //============================================================================================
@@ -23,13 +23,6 @@ ImagePlane::ImagePlane(const std::string filepath,int i,int j,double h,double w)
   B.Ti = Nm;
   B.Tj = Nm;
 
-  std::unique_ptr<CCfits::FITS> pInfile(new CCfits::FITS(filepath,CCfits::Read,true));
-  CCfits::PHDU& image = pInfile->pHDU();
-  image.readAllKeys();
-  //Check if sizes agree
-  std::valarray<float> contents(image.axis(0)*image.axis(1));
-  this->readFits(filepath,contents);
-
   img     = (double*) calloc(Nm,sizeof(double));
   x       = (double*) calloc(Nm,sizeof(double));
   y       = (double*) calloc(Nm,sizeof(double));
@@ -40,6 +33,8 @@ ImagePlane::ImagePlane(const std::string filepath,int i,int j,double h,double w)
   crosses = (Cross**) malloc(Nm*sizeof(Cross*));
   dpsi_cells = (InterpolationCell**) calloc(Nm,sizeof(InterpolationCell*));
 
+  FitsInterface::readFits(Ni,Nj,img,filepath);
+  
   int i0    = floor(Ni/2);
   int j0    = floor(Nj/2);
   double di = height/Ni;
@@ -57,7 +52,6 @@ ImagePlane::ImagePlane(const std::string filepath,int i,int j,double h,double w)
     for(int j=0;j<Nj;j++){
       x[i*Nj+j]   =  (j-j0)*dj;
       y[i*Nj+j]   = -(i-i0)*di;//reflect y-axis
-      img[i*Nj+j] = contents[i*Nj+j];
       cells[i*Nj+j] = NULL;
       crosses[i*Nj+j] = NULL;
       dpsi_cells[i*Nj+j] = NULL;
@@ -78,13 +72,6 @@ ImagePlane::ImagePlane(const std::string filepath,int i,int j,double h,double w,
   B.Ti = Nm;
   B.Tj = Nm;
 
-  std::unique_ptr<CCfits::FITS> pInfile(new CCfits::FITS(filepath,CCfits::Read,true));
-  CCfits::PHDU& image = pInfile->pHDU();
-  image.readAllKeys();
-  //Check if sizes agree
-  std::valarray<float> contents(image.axis(0)*image.axis(1));
-  this->readFits(filepath,contents);
-
   img     = (double*) calloc(Nm,sizeof(double));
   x       = (double*) calloc(Nm,sizeof(double));
   y       = (double*) calloc(Nm,sizeof(double));
@@ -94,6 +81,8 @@ ImagePlane::ImagePlane(const std::string filepath,int i,int j,double h,double w,
   cells   = (InterpolationCell**) calloc(Nm,sizeof(InterpolationCell*));
   crosses = (Cross**) malloc(Nm*sizeof(Cross*));
   dpsi_cells = (InterpolationCell**) calloc(Nm,sizeof(InterpolationCell*));
+
+  FitsInterface::readFits(Ni,Nj,img,filepath);
 
   int i0    = floor(Ni/2);
   int j0    = floor(Nj/2);
@@ -112,7 +101,6 @@ ImagePlane::ImagePlane(const std::string filepath,int i,int j,double h,double w,
     for(int j=0;j<Nj;j++){
       x[i*Nj+j]   = xmin + j*dj;
       y[i*Nj+j]   = ymax - i*di;//reflect y-axis
-      img[i*Nj+j] = contents[i*Nj+j];
       cells[i*Nj+j] = NULL;
       crosses[i*Nj+j] = NULL;
       dpsi_cells[i*Nj+j] = NULL;
@@ -294,52 +282,10 @@ void ImagePlane::writeBin(const std::string filename){
 }
 
 void ImagePlane::writeImage(const std::string filename){  
-  long naxis    = 2;
-  long naxes[2] = {(long) this->Ni,(long) this->Nj};
-  long Ntot = (long) this->Nm;
-  
-  //  std::unique_ptr<CCfits::FITS> pFits(nullptr);
-  std::unique_ptr<CCfits::FITS> pFits( new CCfits::FITS("!"+filename,FLOAT_IMG,naxis,naxes) );
-
-  std::vector<long> extAx(2,(long) this->Ni);
-  CCfits::ExtHDU* imageExt = pFits->addImage("NEW-EXTENSION",FLOAT_IMG,extAx);
-  
-  //Need Ni and Nj as index counters to flip image
-  std::valarray<float> array(Ntot);
-  long count = 0;
-  for(int j=0;j<this->Nj;j++){
-    for(int i=0;i<this->Ni;i++){
-      array[(this->Nj-1-j)*this->Ni+i] = (float) (this->img[count]);
-      count++;
-    }
-  }
-  
-  long fpixel(1);
-  imageExt->write(fpixel,Ntot,array);
-  //  pFits->pHDU().addKey("EXPOSURE",13,"Total Exposure Time"); 
-  pFits->pHDU().addKey("WIDTH",this->width,"width of the image in arcsec");
-  pFits->pHDU().addKey("HEIGHT",this->height,"height of the image in arcsec");
-  pFits->pHDU().write(fpixel,Ntot,array); 
-  //  std::cout << pFits->pHDU() << std::endl;
-}
-
-void ImagePlane::readFits(const std::string filepath,std::valarray<float>& contents){
-  std::unique_ptr<CCfits::FITS> pInfile(new CCfits::FITS(filepath,CCfits::Read,true));
-  CCfits::PHDU& image = pInfile->pHDU();
-  
-  std::valarray<float> tmp;
-  image.readAllKeys();
-  image.read(tmp);
-  
-  int Nj = image.axis(0);
-  int Ni = image.axis(1);
-
-  //convert FITS standard (bottom to top) to the one used in this code (top to bottom)
-  for(int j=0;j<Nj;j++){
-    for(int i=0;i<Ni;i++){
-      contents[j*Ni+i] = tmp[(Nj-j-1)*Ni+i];
-    }
-  }
+  std::vector<std::string> key{"WIDTH","HEIGHT"};
+  std::vector<std::string> val{std::to_string(this->width),std::to_string(this->width)};
+  std::vector<std::string> txt{"width of the image in arcsec","height of the image in arcsec"};
+  FitsInterface::writeFits(this->Ni,this->Nj,this->img,key,val,txt,filename);
 }
 
 void ImagePlane::readS(const std::string filepath){
@@ -352,19 +298,20 @@ void ImagePlane::readS(const std::string filepath){
 
   } else {
 
-    std::valarray<float> contents(this->Nm);
-    this->readFits(filepath,contents);
+    double* fits = (double*) malloc(this->Nm*sizeof(double));
+    FitsInterface::readFits(this->Ni,this->Nj,fits,filepath);
 
     this->Nmask = 0.0;
     for(int i=0;i<this->Nm;i++){
-      if( contents[i] == 1 ){
+      if( fits[i] == 1 ){
 	this->S.tri.push_back({i,i,1.0});
 	this->Nmask++;
       } else {
 	this->S.tri.push_back({i,i,0.0});
       }
     }
-
+    free(fits);
+    
   }
 }
 
@@ -434,17 +381,14 @@ void ImagePlane::readC(const std::string flag,const std::string filepath){
       infile.close();
 
     } else if( extension == "fits" ){
-      
-      std::unique_ptr<CCfits::FITS> pInfile(new CCfits::FITS(filepath,CCfits::Read,true));
-      CCfits::PHDU& image = pInfile->pHDU();
-      image.readAllKeys();
-      std::valarray<float> contents(image.axis(0)*image.axis(1));
-      this->readFits(filepath,contents);
-      
+
+      double* fits = (double*) malloc(this->Nm*sizeof(double));
+      FitsInterface::readFits(this->Ni,this->Nj,fits,filepath);
       for(int i=0;i<this->Ni*this->Nj;i++){
-	this->C.tri.push_back({i,i,contents[i]});
+	this->C.tri.push_back({i,i,fits[i]});
 	//	  std::cout << 1./pow(contents[i*this->Nj+j],2) << std::endl;
       }
+      free(fits);
 
     }
 
@@ -504,28 +448,16 @@ void ImagePlane::readB(const std::string filepath,int i,int j,int ci,int cj){
 
 
     // Read PSF from file
-    std::unique_ptr<CCfits::FITS> pInfile(new CCfits::FITS(filepath,CCfits::Read,true));
-    CCfits::PHDU& image = pInfile->pHDU();
-    image.readAllKeys();
-    //Check if sizes agree
-    std::valarray<float> contents(image.axis(0)*image.axis(1));
-    this->readFits(filepath,contents);
-
-    if( Pj != image.axis(0) ){
-      std::cout << std::endl << std::endl << "PROBLEM!!! PSF DIMENSIONS DON'T MATCH" << std::endl << std::endl;
-    }
-    if( Pi != image.axis(1) ){
-      std::cout << std::endl << std::endl << "PROBLEM!!! PSF DIMENSIONS DON'T MATCH" << std::endl << std::endl;
-    }
-
+    double* fits = (double*) malloc(this->Nm*sizeof(double));
+    FitsInterface::readFits(this->Ni,this->Nj,fits,filepath);
 
 
     // Report on the peak location of the PSF
-    double vmax = contents[0];
+    double vmax = fits[0];
     double imax = 0;
     for(int i=1;i<Pj*Pi;i++){
-      if( contents[i] > vmax ){
-	vmax = contents[i];
+      if( fits[i] > vmax ){
+	vmax = fits[i];
 	imax = i;
       }
     }
@@ -570,10 +502,11 @@ void ImagePlane::readB(const std::string filepath,int i,int j,int ci,int cj){
     double sum = 0.0;
     for(int i=0;i<Ncropy;i++){
       for (int j=0;j<Ncropx;j++){
-	blur[i*Ncropx+j] = contents[offset_tot+i*Pj+j];
+	blur[i*Ncropx+j] = fits[offset_tot+i*Pj+j];
 	sum += blur[i*Ncropx+j];
       }
     }
+    free(fits);
     double fac = 1.0/sum;
     for(int i=0;i<Ncropx*Ncropy;i++){
       blur[i] *= fac;

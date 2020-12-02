@@ -1,7 +1,6 @@
 #ifndef IMAGE_PLANE_HPP
 #define IMAGE_PLANE_HPP
 
-#include <valarray>
 #include <string>
 #include <vector>
 #include <map>
@@ -71,7 +70,6 @@ public:
 
   void writeImage(const std::string filename);
   void writeBin(const std::string filename);
-  void readFits(const std::string filename,std::valarray<float>& contents);
   void readB(const std::string filepath,int i,int j,int ci,int cj);
   void readC(const std::string flag,const std::string filepath);
   void readS(const std::string filepath);

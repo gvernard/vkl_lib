@@ -10,7 +10,7 @@ RectGrid::RectGrid(int Nx,int Ny,double xmin,double xmax,double ymin,double ymax
 
 RectGrid::RectGrid(int Nx,int Ny,double xmin,double xmax,double ymin,double ymax,const std::string filepath,std::map<std::string,std::string> options){
   this->common_constructor(Nx,Ny,xmin,xmax,ymin,ymax,options);
-  this->readGridValues(this->z,filepath);
+  FitsInterface::readFits(this->Ny,this->Nx,this->z,filepath);
 }
 
 void RectGrid::common_constructor(int Nx,int Ny,double xmin,double xmax,double ymin,double ymax,std::map<std::string,std::string> options){
@@ -43,10 +43,6 @@ void RectGrid::common_constructor(int Nx,int Ny,double xmin,double xmax,double y
     this->bound_x[j]  = xmin + j*this->step_x;
   }
   this->bound_x[this->Nx] = xmax;
-}
-
-void RectGrid::readGridValues(double* field,const std::string filepath){
-  FitsInterface::readFits(this->Ny,this->Nx,field,filepath);
 }
 
 RectGrid::RectGrid(const RectGrid& grid){

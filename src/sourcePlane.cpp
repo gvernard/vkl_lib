@@ -14,13 +14,11 @@
 #include <CGAL/Delaunay_triangulation_adaptation_traits_2.h>
 #include <CGAL/Delaunay_triangulation_adaptation_policies_2.h>
 
-#include <CCfits/CCfits>
-
 #include "imagePlane.hpp"
 #include "covKernels.hpp"
 #include "massModels.hpp"
 #include "tableDefinition.hpp"
-
+#include "fitsInterface.hpp"
 
 
 
@@ -607,36 +605,11 @@ void FixedSource::constructH(){
 void FixedSource::outputSource(const std::string fname){
   //Write PNG:
   //writeArrayPngPP(filename,this->Sj,this->Si,this->src);
-  std::string filename = fname;
 
-  //Write FITS:
-  long naxis    = 2;
-  long naxes[2] = {(long) this->Si,(long) this->Sj};
-  long Ntot = (long) this->Si*this->Sj;
-
-  std::unique_ptr<CCfits::FITS> pFits(nullptr);
-  pFits.reset( new CCfits::FITS("!"+filename,DOUBLE_IMG,naxis,naxes) );
-  
-  std::vector<long> extAx(2,(long) this->Si);
-  std::string newName("NEW-EXTENSION");
-  CCfits::ExtHDU* imageExt = pFits->addImage(newName,DOUBLE_IMG,extAx);
-
-  std::valarray<double> array(Ntot);
-  long count = 0;
-  for(int j=0;j<this->Sj;j++){
-    for(int i=0;i<this->Si;i++){
-      array[(this->Sj-1-j)*this->Si+i] = this->src[count];
-      //      array[j*this->Si+i] = this->src[count];
-      count++;
-    }
-  }
-
-  long fpixel(1);
-  imageExt->write(fpixel,(long) Ntot,array);
-  pFits->pHDU().addKey("EXPOSURE",13,"Total Exposure Time"); 
-  pFits->pHDU().addKey("WIDTH",this->width,"width of the image"); 
-  pFits->pHDU().addKey("HEIGHT",this->height,"height of the image"); 
-  pFits->pHDU().write(fpixel,Ntot,array); 
+  std::vector<std::string> key{"WIDTH","HEIGHT"};
+  std::vector<std::string> val{std::to_string(this->width),std::to_string(this->width)};
+  std::vector<std::string> txt{"width of the image in arcsec","height of the image in arcsec"};
+  FitsInterface::writeFits(this->Si,this->Sj,this->src,key,val,txt,fname);
 }
 
 //virtual
