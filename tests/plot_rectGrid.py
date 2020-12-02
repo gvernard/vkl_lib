@@ -68,3 +68,49 @@ ax.set_ylabel('y')
 ax.set_title('Derivative z_x')
 plt.savefig('example_function_dx.png')
 '''
+
+
+N = 5
+np.random.seed(1)
+data = np.round(np.random.rand(N,N),1)
+#print(data)
+
+b1_min = -4.0
+b1_max = 0.2
+b2_min = -2.0
+b2_max = 2.1
+
+stepx_big = 0.84
+stepy_big = 0.82
+x = np.linspace(b1_min+stepx_big/2.0,b1_max-stepx_big/2.0,N)
+y = np.linspace(b2_min+stepy_big/2.0,b2_max-stepy_big/2.0,N)
+#print(x)
+#print(y)
+interp = 'cubic'
+f = interpolate.interp2d(x,y,data,kind=interp)
+
+stepx = 0.044
+stepy = 0.042
+xnew = np.linspace(b1_min+stepx_big/2.0,b1_max-stepx_big/2.0,30*N)
+ynew = np.linspace(b2_min+stepy_big/2.0,b2_max-stepy_big/2.0,30*N)
+znew = f(xnew,ynew)
+#print(xnew)
+#print(ynew)
+
+fig = plt.figure(figsize=(5,5))
+ax = fig.add_axes([0.125, 0.175, 0.75, 0.75])
+plt.imshow(znew,extent=(xnew[0],xnew[-1],ynew[0],ynew[-1]),cmap='viridis',zorder=1)
+plt.title(interp,weight='bold')
+plt.xlim(xnew[0],xnew[-1])
+plt.ylim(ynew[0],ynew[-1])
+
+cax = fig.add_axes([0.125, 0.075, 0.75, 0.03])
+cb = plt.colorbar(cax=cax,orientation='horizontal',ticks=np.linspace(0,1,6))
+#cb.solids.set_edgecolor('face')
+
+plt.scatter(xnew,ynew,marker='.',color='k',zorder=2,s=100)
+plt.savefig("python_bilinear.png")
+
+
+hdu = fits.PrimaryHDU(znew)
+hdu.writeto('python_interp.fits',overwrite=True)

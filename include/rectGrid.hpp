@@ -3,6 +3,9 @@
 
 #include <string>
 #include <vector>
+#include <map>
+#include <iostream>
+
 
 struct triplet{
   int i;    // index in the y direction
@@ -30,11 +33,16 @@ public:
   double height;
   double step_x;
   double step_y;
+
+  std::map<std::string,std::string> options;
   
-  RectGrid(int Nx,int Ny,double xmin,double xmax,double ymin,double ymax);
-  RectGrid(int Nx,int Ny,double xmin,double xmax,double ymin,double ymax,const std::string filepath);
+  RectGrid(int Nx,int Ny,double xmin,double xmax,double ymin,double ymax,std::map<std::string,std::string> options = {{"dev1_accu","1"},{"dev2_accu","2"},{"interp","bilinear"}});
+  RectGrid(int Nx,int Ny,double xmin,double xmax,double ymin,double ymax,const std::string filepath,std::map<std::string,std::string> options = {{"dev1_accu","1"},{"dev2_accu","2"},{"interp","bilinear"}});
+  RectGrid(const RectGrid& grid);
   ~RectGrid();
 
+  RectGrid* embeddedNewGrid(int new_Nx,int new_Ny);
+  
   bool point_in_grid(double x,double y);
   bool point_between_pixel_centers(double x,double y,int boundary_size);
   void match_point_to_pixel(double x,double y,int& i0,int& j0);
@@ -42,20 +50,28 @@ public:
   bool match_point_to_closest_4(double x,double y,int* i,int* j);
   bool match_point_to_closest_16(double x,double y,int* i,int* j);
 
-  void calculate_zx(std::string accuracy);
-  void calculate_zy(std::string accuracy);
-  void calculate_zxy(std::string accuracy);
-  void calculate_zxx(std::string accuracy);
-  void calculate_zyy(std::string accuracy);
+  double interp2d(double x,double y);
+  double interp2d_bilinear(double x,double y);
+  double interp2d_bicubic(double x,double y);
+  
+  void calculate_zx();
+  void calculate_zy();
+  void calculate_zxy();
+  void calculate_zxx();
+  void calculate_zyy();
 
   
 private:
-  void common_constructor(int Nx,int Ny,double xmin,double xmax,double ymin,double ymax);
-  void readFits(double* field,const std::string filepath);
-  void multiplyVectorByScalar(std::vector<double> &v,double k);
+  void common_constructor(int Nx,int Ny,double xmin,double xmax,double ymin,double ymax,std::map<std::string,std::string> options);
+  void readGridValues(double* field,const std::string filepath);
+
+  void multiply_vector_scalar(std::vector<double> &v,double k);
+  void multiply_table_vector(int Nrows,int Ncols,double* tab_input,double* vec_input,double* vec_output);
+  void multiply_table_table(int Nrows_1,int Ncols_1,int N_cols_2,double* tab_input_1,double* tab_input_2,double* tab_output);
+  double multiply_vector_vector(int N,double* vec_1,double* vec_2);
   
-  void calculate_derivative_1(int Nh,int Nv,double* h,double* zz,double* zout,std::string accuracy);
-  void calculate_derivative_2(int Nh,int Nv,double* h,double* zz,double* zout,std::string accuracy);
+  void calculate_derivative_1(int Nh,int Nv,double* h,double* zz,double* zout);
+  void calculate_derivative_2(int Nh,int Nv,double* h,double* zz,double* zout);
 
   // Finite difference coefficients and relative indices.
   // 1st derivatives
@@ -83,30 +99,5 @@ private:
 
   double weighted_sum(int i0,int j0,std::vector<int> rel_i,std::vector<int> rel_j,std::vector<double> coeff,int z_Nx,double* zz);
 };
-
-// 2nd derivatives
-const std::vector<int>    RectGrid::derivative_1_forward_1_index({0,1});
-const std::vector<double> RectGrid::derivative_1_forward_1_coeff({-1,1});
-const std::vector<int>    RectGrid::derivative_1_forward_2_index({0,1,2});
-const std::vector<double> RectGrid::derivative_1_forward_2_coeff({-1.5,2.0,-0.5});
-const std::vector<int>    RectGrid::derivative_1_backward_1_index({-1,0});
-const std::vector<double> RectGrid::derivative_1_backward_1_coeff({-1,1});
-const std::vector<int>    RectGrid::derivative_1_backward_2_index({-2,-1,0});
-const std::vector<double> RectGrid::derivative_1_backward_2_coeff({0.5,-2,1.5});
-const std::vector<int>    RectGrid::derivative_1_central_2_index({-1,0,1});
-const std::vector<double> RectGrid::derivative_1_central_2_coeff({-0.5,0.0,0.5});
-// 2nd derivatives
-const std::vector<int>    RectGrid::derivative_2_forward_1_index({0,1,2});
-const std::vector<double> RectGrid::derivative_2_forward_1_coeff({1,-2,1});  
-const std::vector<int>    RectGrid::derivative_2_forward_2_index({0,1,2,3});
-const std::vector<double> RectGrid::derivative_2_forward_2_coeff({2,-5,4,-1});
-const std::vector<int>    RectGrid::derivative_2_backward_1_index({-2,-1,0});
-const std::vector<double> RectGrid::derivative_2_backward_1_coeff({1,-2,1});  
-const std::vector<int>    RectGrid::derivative_2_backward_2_index({-3,-2,-1,0});
-const std::vector<double> RectGrid::derivative_2_backward_2_coeff({-1,4,-5,2});
-const std::vector<int>    RectGrid::derivative_2_central_2_index({-1,0,1});
-const std::vector<double> RectGrid::derivative_2_central_2_coeff({1,-2,1});
-
-
 
 #endif /* RECT_GRID_HPP */

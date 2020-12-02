@@ -4,22 +4,26 @@
 #include <cmath>
 #include <algorithm>
 
-RectGrid::RectGrid(int Nx,int Ny,double xmin,double xmax,double ymin,double ymax){
-  this->common_constructor(Nx,Ny,xmin,xmax,ymin,ymax);
+RectGrid::RectGrid(int Nx,int Ny,double xmin,double xmax,double ymin,double ymax,std::map<std::string,std::string> options){
+  this->common_constructor(Nx,Ny,xmin,xmax,ymin,ymax,options);
 }
 
-RectGrid::RectGrid(int Nx,int Ny,double xmin,double xmax,double ymin,double ymax,const std::string filepath){
-  this->common_constructor(Nx,Ny,xmin,xmax,ymin,ymax);
-  this->readFits(this->z,filepath);
+RectGrid::RectGrid(int Nx,int Ny,double xmin,double xmax,double ymin,double ymax,const std::string filepath,std::map<std::string,std::string> options){
+  this->common_constructor(Nx,Ny,xmin,xmax,ymin,ymax,options);
+  this->readGridValues(this->z,filepath);
 }
 
-void RectGrid::common_constructor(int Nx,int Ny,double xmin,double xmax,double ymin,double ymax){
+void RectGrid::common_constructor(int Nx,int Ny,double xmin,double xmax,double ymin,double ymax,std::map<std::string,std::string> options){
   this->Nx = Nx;
   this->Ny = Ny;
   this->width  = xmax - xmin;
   this->height = ymax - ymin;
   this->step_x = this->width/this->Nx;
   this->step_y = this->height/this->Ny;
+
+  for(std::map<std::string,std::string>::iterator it=options.begin();it!=options.end();it++){
+    this->options[it->first] = it->second;
+  }
 
   this->Nz = this->Nx*this->Ny;
   this->z  = (double*) calloc(this->Nx*this->Ny,sizeof(double));
@@ -41,14 +45,46 @@ void RectGrid::common_constructor(int Nx,int Ny,double xmin,double xmax,double y
   this->bound_x[this->Nx] = xmax;
 }
 
-void RectGrid::readFits(double* field,const std::string filepath){
+void RectGrid::readGridValues(double* field,const std::string filepath){
   FitsInterface::readFits(this->Ny,this->Nx,field,filepath);
 }
 
-void multiplyVectorByScalar(std::vector<double> &v,double k){
-  std::transform(v.begin(),v.end(),v.begin(), [k](double &c){ return c*k; });
+RectGrid::RectGrid(const RectGrid& grid){
+  this->common_constructor(grid.Nx,grid.Ny,grid.bound_x[0],grid.bound_x[grid.Nx],grid.bound_y[0],grid.bound_y[grid.Ny],grid.options);
+  for(int k=0;k<grid.Nz;k++){
+    this->z[k] = grid.z[k];
+  }
+  if( grid.zx != NULL ){
+    for(int k=0;k<grid.Nz;k++){
+      this->zx = (double*) calloc(this->Nz,sizeof(double));
+      this->zx[k] = grid.zx[k];
+    }
+  }
+  if( grid.zy != NULL ){
+    for(int k=0;k<grid.Nz;k++){
+      this->zy = (double*) calloc(this->Nz,sizeof(double));
+      this->zy[k] = grid.zy[k];
+    }
+  }
+  if( grid.zxy != NULL ){
+    for(int k=0;k<grid.Nz;k++){
+      this->zxy = (double*) calloc(this->Nz,sizeof(double));
+      this->zxy[k] = grid.zxy[k];
+    }
+  }
+  if( grid.zxx != NULL ){
+    for(int k=0;k<grid.Nz;k++){
+      this->zxx = (double*) calloc(this->Nz,sizeof(double));
+      this->zxx[k] = grid.zxx[k];
+    }
+  }
+  if( grid.zyy != NULL ){
+    for(int k=0;k<grid.Nz;k++){
+      this->zyy = (double*) calloc(this->Nz,sizeof(double));
+      this->zyy[k] = grid.zyy[k];
+    }
+  }  
 }
-
 
 RectGrid::~RectGrid(){
   free(center_x);
@@ -61,6 +97,28 @@ RectGrid::~RectGrid(){
   free(zyy);
   free(bound_x);
   free(bound_y);
+}
+
+RectGrid* RectGrid::embeddedNewGrid(int new_Nx,int new_Ny){
+  double new_xmin = this->center_x[0];
+  double new_xmax = this->center_x[this->Nx-1];
+  double new_ymin = this->center_y[0];
+  double new_ymax = this->center_y[this->Ny-1];
+
+  RectGrid* new_grid = new RectGrid(new_Nx,new_Ny,new_xmin,new_xmax,new_ymin,new_ymax,this->options);
+
+  if( this->z != NULL ){
+    new_grid->z = (double*) calloc(new_grid->Nz,sizeof(double));
+    for(int i=0;i<new_Ny;i++){
+      for(int j=0;j<new_Nx;j++){
+	double x = new_grid->center_x[j];
+	double y = new_grid->center_y[i];
+	new_grid->z[i*new_grid->Nx+j] = this->interp2d(x,y);
+      }
+    }
+  }
+  
+  return new_grid;
 }
 
 bool RectGrid::point_in_grid(double x,double y){
@@ -185,12 +243,87 @@ bool RectGrid::match_point_to_closest_16(double x,double y,int* i,int* j){
 }
 
 
-void RectGrid::calculate_zx(std::string accuracy){
-  this->zx = (double*) calloc(this->Nz,sizeof(double));
-  this->calculate_derivative_1(this->Nx,this->Ny,this->center_x,this->z,this->zx,accuracy);
+
+double RectGrid::interp2d(double x,double y){
+  if( this->options["interp"] == "bilinear" ){
+    return this->interp2d_bilinear(x,y);
+  } else {
+    return this->interp2d_bicubic(x,y);
+  }
 }
 
-void RectGrid::calculate_zy(std::string accuracy){
+double RectGrid::interp2d_bilinear(double x,double y){
+  //    a     b
+  // 0-----------1
+  // | w3  |  w2 |  c
+  // |---(x,y)---|
+  // | w1  |  w0 |  d
+  // 2-----------3
+  //
+  // w3=ac, w2=bc, w1=ad, w0=bd
+  
+  int ii[4],jj[4];
+  match_point_to_closest_4(x,y,ii,jj);
+
+  double a = (x - this->center_x[jj[0]]);
+  double b = (this->center_x[jj[1]] - x);
+  double c = (this->center_y[ii[0]] - y);
+  double d = (y - this->center_y[ii[2]]);
+
+  std::vector<double> w{b*d,a*d,b*c,a*c};
+
+  double z_interp = 0.0;
+  for(int k=0;k<4;k++){
+    z_interp += w[k]*z[ii[k]*this->Nx+jj[k]];
+  }
+  return z_interp/(this->step_x*this->step_y);
+}
+
+double RectGrid::interp2d_bicubic(double x,double y){
+  if( this->zx == NULL ){
+    this->calculate_zx();
+  }
+  if( this->zy == NULL ){
+    this->calculate_zy();
+  }
+  if( this->zxy == NULL ){
+    this->calculate_zxy();
+  }
+
+  int ii[4],jj[4];
+  match_point_to_closest_4(x,y,ii,jj);
+
+  double tab_left[16]  = {1,0,0,0,0,0,1,0,-3,3,-2,-1,2,-2,1,1};
+  double tab_right[16] = {1,0,-3,2,0,0,3,-2,0,1,-2,1,0,0,-1,1};
+
+  int x00 = ii[2]*this->Nx+jj[2];
+  int x01 = ii[0]*this->Nx+jj[0];
+  int x10 = ii[3]*this->Nx+jj[3];
+  int x11 = ii[1]*this->Nx+jj[1];
+  double tab_mid[16] = {this->z[x00],this->z[x01],this->step_y*this->zy[x00],this->step_y*this->zy[x01],this->z[x10],this->z[x11],this->step_y*this->zy[x10],this->step_y*this->zy[x11],this->step_x*this->zx[x00],this->step_x*this->zx[x01],this->step_y*this->step_x*this->zxy[x00],this->step_y*this->step_x*this->zxy[x01],this->step_x*this->zx[x10],this->step_x*this->zx[x11],this->step_y*this->step_x*this->zxy[x10],this->step_y*this->step_x*this->zxy[x11]};
+  //  double tab_mid[16] = {this->z[x00],this->z[x01],this->zy[x00],this->zy[x01],this->z[x10],this->z[x11],this->zy[x10],this->zy[x11],this->zx[x00],this->zx[x01],this->zxy[x00],this->zxy[x01],this->zx[x10],this->zx[x11],this->zxy[x10],this->zxy[x11]};
+
+  double coeff[16],tab_tmp[16];
+  this->multiply_table_table(4,4,4,tab_mid,tab_right,tab_tmp);
+  this->multiply_table_table(4,4,4,tab_left,tab_tmp,coeff);
+
+  double xu = (x-this->center_x[jj[0]])/this->step_x;
+  double yu = (y-this->center_y[ii[2]])/this->step_y;
+
+  double vec_left[4]  = {1,xu,pow(xu,2),pow(xu,3)};
+  double vec_right[4] = {1,yu,pow(yu,2),pow(yu,3)};
+  double vec_tmp[4];
+  this->multiply_table_vector(4,4,coeff,vec_right,vec_tmp);
+  return multiply_vector_vector(4,vec_left,vec_tmp);
+}
+
+
+void RectGrid::calculate_zx(){
+  this->zx = (double*) calloc(this->Nz,sizeof(double));
+  this->calculate_derivative_1(this->Nx,this->Ny,this->center_x,this->z,this->zx);
+}
+
+void RectGrid::calculate_zy(){
   this->zy = (double*) calloc(this->Nz,sizeof(double));
   double* tmp_1 = (double*) calloc(this->Nz,sizeof(double));
   for(int i=0;i<this->Ny;i++){
@@ -198,7 +331,7 @@ void RectGrid::calculate_zy(std::string accuracy){
       this->zy[j*this->Ny+i] = this->z[i*this->Nx+j];
     }
   }
-  this->calculate_derivative_1(this->Ny,this->Nx,this->center_y,this->zy,tmp_1,accuracy);
+  this->calculate_derivative_1(this->Ny,this->Nx,this->center_y,this->zy,tmp_1);
   for(int i=0;i<this->Ny;i++){
     for(int j=0;j<this->Nx;j++){
       this->zy[i*this->Nx+j] = tmp_1[j*this->Ny+i];
@@ -207,20 +340,20 @@ void RectGrid::calculate_zy(std::string accuracy){
   free(tmp_1);
 }
 
-void RectGrid::calculate_zxy(std::string accuracy){
+void RectGrid::calculate_zxy(){
   if( this->zy == NULL ){
-    this->calculate_zy(accuracy);
+    this->calculate_zy();
   }
   this->zxy = (double*) calloc(this->Nz,sizeof(double));
-  this->calculate_derivative_1(this->Nx,this->Ny,this->center_x,this->zy,this->zxy,accuracy);  
+  this->calculate_derivative_1(this->Nx,this->Ny,this->center_x,this->zy,this->zxy);  
 }
 
-void RectGrid::calculate_zxx(std::string accuracy){
+void RectGrid::calculate_zxx(){
   this->zxx = (double*) calloc(this->Nz,sizeof(double));
-  this->calculate_derivative_2(this->Nx,this->Ny,this->center_x,this->z,this->zxx,accuracy);
+  this->calculate_derivative_2(this->Nx,this->Ny,this->center_x,this->z,this->zxx);
 }
 
-void RectGrid::calculate_zyy(std::string accuracy){
+void RectGrid::calculate_zyy(){
   this->zyy = (double*) calloc(this->Nz,sizeof(double));
   double* tmp_1 = (double*) calloc(this->Nz,sizeof(double));
   for(int i=0;i<this->Ny;i++){
@@ -228,7 +361,7 @@ void RectGrid::calculate_zyy(std::string accuracy){
       this->zyy[j*this->Ny+i] = this->z[i*this->Nx+j];
     }
   }
-  this->calculate_derivative_2(this->Ny,this->Nx,this->center_y,this->zyy,tmp_1,accuracy);
+  this->calculate_derivative_2(this->Ny,this->Nx,this->center_y,this->zyy,tmp_1);
   for(int i=0;i<this->Ny;i++){
     for(int j=0;j<this->Nx;j++){
       this->zyy[i*this->Nx+j] = tmp_1[j*this->Ny+i];
@@ -238,7 +371,7 @@ void RectGrid::calculate_zyy(std::string accuracy){
 }
 
 
-void RectGrid::calculate_derivative_1(int Nh,int Nv,double* h,double* zz,double* zout,std::string accuracy){
+void RectGrid::calculate_derivative_1(int Nh,int Nv,double* h,double* zz,double* zout){
   // calculate the FIRST derivative along the horizontal axis
   int h0,v0;
   std::vector<int> rel_index_v;
@@ -247,7 +380,7 @@ void RectGrid::calculate_derivative_1(int Nh,int Nv,double* h,double* zz,double*
   double dh = h[1]-h[0];
   
   // 1st column
-  if( accuracy == "1" ){
+  if( this->options["dev1_accu"] == "1" ){
     rel_index_v = {0,0};
     rel_index_h = this->derivative_1_forward_1_index;
     coeff       = this->derivative_1_forward_1_coeff;
@@ -262,7 +395,7 @@ void RectGrid::calculate_derivative_1(int Nh,int Nv,double* h,double* zz,double*
   }
 
   // last column
-  if( accuracy == "1" ){
+  if( this->options["dev1_accu"] == "1" ){
     rel_index_v = {0,0};
     rel_index_h = this->derivative_1_backward_1_index;
     coeff       = this->derivative_1_backward_1_coeff;
@@ -288,7 +421,7 @@ void RectGrid::calculate_derivative_1(int Nh,int Nv,double* h,double* zz,double*
 }
 
 
-void RectGrid::calculate_derivative_2(int Nh,int Nv,double* h,double* zz,double* zout,std::string accuracy){
+void RectGrid::calculate_derivative_2(int Nh,int Nv,double* h,double* zz,double* zout){
   // calculate the SECOND derivative along the horizontal axis
   int h0,v0;
   std::vector<int> rel_index_v;
@@ -297,7 +430,7 @@ void RectGrid::calculate_derivative_2(int Nh,int Nv,double* h,double* zz,double*
   double dh2 = pow(h[1]-h[0],2);
   
   // 1st column
-  if( accuracy == "1" ){
+  if( this->options["dev2_accu"] == "1" ){
     rel_index_v = {0,0,0};
     rel_index_h = this->derivative_2_forward_1_index;
     coeff       = this->derivative_2_forward_1_coeff;
@@ -312,7 +445,7 @@ void RectGrid::calculate_derivative_2(int Nh,int Nv,double* h,double* zz,double*
   }
 
   // last column
-  if( accuracy == "1" ){
+  if( this->options["dev2_accu"] == "1" ){
     rel_index_v = {0,0,0};
     rel_index_h = this->derivative_2_backward_1_index;
     coeff       = this->derivative_2_backward_1_coeff;
@@ -345,3 +478,61 @@ double RectGrid::weighted_sum(int i0,int j0,std::vector<int> rel_i,std::vector<i
   }
   return sum;
 }
+
+void RectGrid::multiply_vector_scalar(std::vector<double> &v,double k){
+  std::transform(v.begin(),v.end(),v.begin(), [k](double &c){ return c*k; });
+}
+
+void RectGrid::multiply_table_vector(int Nrows,int Ncols,double* tab_input,double* vec_input,double* vec_output){
+  for(int i=0;i<Nrows;i++){
+    double sum = 0.0;
+    for(int j=0;j<Ncols;j++){
+      sum += tab_input[i*Nrows+j] * vec_input[j];
+    }
+    vec_output[i] = sum;
+  }
+}
+
+void RectGrid::multiply_table_table(int Nrows_1,int Ncols_1,int Ncols_2,double* tab_input_1,double* tab_input_2,double* tab_output){
+  for(int i=0;i<Nrows_1;i++){
+    for(int k=0;k<Ncols_2;k++){
+      double sum = 0.0;
+      for(int j=0;j<Ncols_1;j++){
+	sum += tab_input_1[i*Ncols_1+j] * tab_input_2[j*Ncols_2+k];
+      }
+      tab_output[i*Ncols_2+k] = sum;
+    }
+  }
+}
+  
+double RectGrid::multiply_vector_vector(int N,double* vec_1,double* vec_2){
+  double sum = 0.0;
+  for(int i=0;i<N;i++){
+    sum += vec_1[i]*vec_2[i];
+  }
+  return sum;
+}
+
+// Definition of static variables:
+// 2nd derivatives
+const std::vector<int>    RectGrid::derivative_1_forward_1_index({0,1});
+const std::vector<double> RectGrid::derivative_1_forward_1_coeff({-1,1});
+const std::vector<int>    RectGrid::derivative_1_forward_2_index({0,1,2});
+const std::vector<double> RectGrid::derivative_1_forward_2_coeff({-1.5,2.0,-0.5});
+const std::vector<int>    RectGrid::derivative_1_backward_1_index({-1,0});
+const std::vector<double> RectGrid::derivative_1_backward_1_coeff({-1,1});
+const std::vector<int>    RectGrid::derivative_1_backward_2_index({-2,-1,0});
+const std::vector<double> RectGrid::derivative_1_backward_2_coeff({0.5,-2,1.5});
+const std::vector<int>    RectGrid::derivative_1_central_2_index({-1,0,1});
+const std::vector<double> RectGrid::derivative_1_central_2_coeff({-0.5,0.0,0.5});
+// 2nd derivatives
+const std::vector<int>    RectGrid::derivative_2_forward_1_index({0,1,2});
+const std::vector<double> RectGrid::derivative_2_forward_1_coeff({1,-2,1});  
+const std::vector<int>    RectGrid::derivative_2_forward_2_index({0,1,2,3});
+const std::vector<double> RectGrid::derivative_2_forward_2_coeff({2,-5,4,-1});
+const std::vector<int>    RectGrid::derivative_2_backward_1_index({-2,-1,0});
+const std::vector<double> RectGrid::derivative_2_backward_1_coeff({1,-2,1});  
+const std::vector<int>    RectGrid::derivative_2_backward_2_index({-3,-2,-1,0});
+const std::vector<double> RectGrid::derivative_2_backward_2_coeff({-1,4,-5,2});
+const std::vector<int>    RectGrid::derivative_2_central_2_index({-1,0,1});
+const std::vector<double> RectGrid::derivative_2_central_2_coeff({1,-2,1});
