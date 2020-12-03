@@ -1,0 +1,55 @@
+/*
+TO DO:
+- Move the createInterpolationWeights functionality elsewhere.
+- Move the constructDs functionality elsewhere
+- Move constructL
+
+TO CONSIDER:
+- Non-virtual Base class function to change covariance type and recompute H?
+
+*/
+
+
+This class represents any kind of source description through the BaseSourcePlane class.
+There are three child classes: FixedSource, AdaptiveSource, and WaveletSource.
+
+
+
+BASE SOURCE CLASS
+
+Constructors:
+- Copy constructor
+
+Member functions (virtual):
+- constructH: create a triplet for the regularization matrix
+- outputSource: write the source brightness in different formats as required.
+- outputSourceErrors:
+
+
+the special 
+
+FIXED SOURCE
+The fixed source is represented by a RectGrid class.
+
+Constructors:
+- takes as input exactly what is needed to create a RectGrid, plus the name of the regularization scheme to use
+
+Member functions (virtual):
+- constructH: create the triplet using the 1-st and 2nd order coefficients of the derivatives on the grid points. These come directly from the RectGrid functions:
+  * identity: just a diagonal matrix
+  * gradient:
+  * curvature_full: Find the finite difference coefficients for the 2-nd derivative in the x and y dimension and append them to the triplet vector (H). Different derivatives (forward,backward,central) are used for each corner pixel, the top, bottom, left, and right rows.
+  * curvature: same as above, but all the bordering pixels have been set to identity and the middle chunk as above, i.e. central derivative in both x- and y- direction.
+  * covariance_kernel: Find the distance from every RectGrid pixel to all the others and then compute the covariance from the kernel and insert it to the triplet vector representing the sparse H table. At the same time, keep track of the maximum elements per row of this table and use it in the end to set the number of non-zero elements (required e.g. from Eigen).
+- outputSource: write the RectGrid
+- outputSourceErrors:
+
+
+
+
+
+ADAPTIVE SOURCE
+
+Constructors:
+
+Member functions:

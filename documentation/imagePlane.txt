@@ -1,0 +1,42 @@
+/*
+TO DO:
+- Move lowerResRebinAdditive and lowerResRebinIntegrate to RectGrid because they are about manipulating grids
+- Clarify the role of maskData
+
+TO CONSIDER:
+- Move Crosses to Pert?
+- move InterpolationCells to RectGrid? Or connect them somehow.
+*/
+
+
+
+This class is designed to represent an observed image.
+Each instance is uniquely defined by a filename (setting grid.z), B, S, and C.
+The ImagePlane object has a lot of functionality covered by the RectGrid class.
+For quick reference and backward compatibility I kept Ni,Nj,Nm.
+Of specific relevence to an ImagePlane object are the:
+- defl_x,defl_y: stored pre-computed deflection angles, in conjustion with a specific mass model.
+- active: the pixels inside the mask (value of 1)
+- InterpolationCells: not sure if this can be covered by RectGrid
+- crosses: this is considered only in conjuction with a Pert mass model.
+- B: blurring matrix (PSF)
+- C: covariance matrix (for the noise)
+- S: mask
+- noise_flag: correlated,uniform,noise map
+
+
+
+
+Constructors:
+- One to read in existing images
+- One to create empty images, but with all coordinates set
+- Copy constructor is to create new ImagePlanes that have matching dimensions but are empty.
+
+Member functions:
+- writeImage: writes the RectGrid with header entries specific to the ImagePlane object
+- readB/readC/readS: read the corresponding matrices
+- printCross: prints the cross structure k, maybe more pertinent to the Pert class
+- setCroppedLimitsEven: used to crop the PSF
+- setCroppedLimitsOdd: used to crop the PSF
+
+- maskData:

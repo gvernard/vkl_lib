@@ -31,6 +31,10 @@ public:
   double* bound_y; // 1D, size of Ny+1: pixel y boundaries, can be accessed by y[i],y[i+1], where 0<i<Ny
   double width;
   double height;
+  double xmin;
+  double xmax;
+  double ymin;
+  double ymax;
   double step_x;
   double step_y;
 
@@ -41,12 +45,11 @@ public:
   RectGrid(const RectGrid& grid);
   ~RectGrid();
 
-  RectGrid* embeddedNewGrid(int new_Nx,int new_Ny);
-  
+  void set_interp(std::string interp);
+  RectGrid* embeddedNewGrid(int new_Nx,int new_Ny);  
   bool point_in_grid(double x,double y);
   bool point_between_pixel_centers(double x,double y,int boundary_size);
   void match_point_to_pixel(double x,double y,int& i0,int& j0);
-
   bool match_point_to_closest_4(double x,double y,int* i,int* j);
   bool match_point_to_closest_16(double x,double y,int* i,int* j);
 
@@ -62,7 +65,6 @@ public:
     
 private:
   void common_constructor(int Nx,int Ny,double xmin,double xmax,double ymin,double ymax,std::map<std::string,std::string> options);
-  void set_interp(std::string interp);
   
   void multiply_vector_scalar(std::vector<double> &v,double k);
   void multiply_table_vector(int Nrows,int Ncols,double* tab_input,double* vec_input,double* vec_output);

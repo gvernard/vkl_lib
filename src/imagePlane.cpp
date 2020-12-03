@@ -7,15 +7,16 @@
 
 #include "tableDefinition.hpp"
 #include "fitsInterface.hpp"
+#include "rectGrid.hpp"
 
 //ImagePlane class implementation
 //============================================================================================
-ImagePlane::ImagePlane(const std::string filepath,int i,int j,double h,double w){
-  Ni     = i;
-  Nj     = j;
-  Nm     = Ni*Nj;
-  width  = w;
-  height = h;
+ImagePlane::ImagePlane(const std::string filepath,int Nx,int Ny,double xmin,double xmax,double ymin,double ymax){
+  Ni   = Ny;
+  Nj   = Nx;
+  grid = new RectGrid(Nx,Ny,xmin,xmax,ymin,ymax,filepath);
+
+  Nm   = Ni*Nj;
   S.Ti = Nm;
   S.Tj = Nm;
   C.Ti = Nm;
@@ -23,35 +24,15 @@ ImagePlane::ImagePlane(const std::string filepath,int i,int j,double h,double w)
   B.Ti = Nm;
   B.Tj = Nm;
 
-  img     = (double*) calloc(Nm,sizeof(double));
-  x       = (double*) calloc(Nm,sizeof(double));
-  y       = (double*) calloc(Nm,sizeof(double));
   defl_x  = (double*) calloc(Nm,sizeof(double));
   defl_y  = (double*) calloc(Nm,sizeof(double));
   active  = (int*) calloc(Nm,sizeof(int));
   cells   = (InterpolationCell**) calloc(Nm,sizeof(InterpolationCell*));
   crosses = (Cross**) malloc(Nm*sizeof(Cross*));
   dpsi_cells = (InterpolationCell**) calloc(Nm,sizeof(InterpolationCell*));
-
-  FitsInterface::readFits(Ni,Nj,img,filepath);
   
-  int i0    = floor(Ni/2);
-  int j0    = floor(Nj/2);
-  double di = height/Ni;
-  double dj = width/Nj;
-
-  // xmax,xmin are the x coordinates of the leftmost and rightmost pixels.
-  // REMEMBER: xmax-xmin != width (Nj*dj).
-  // Similarly for y.
-  xmin = -j0*dj;
-  xmax = (this->Nj-j0)*dj;
-  ymin = -i0*di;
-  ymax = (this->Ni-i0)*di;
-
   for(int i=0;i<Ni;i++){
     for(int j=0;j<Nj;j++){
-      x[i*Nj+j]   =  (j-j0)*dj;
-      y[i*Nj+j]   = -(i-i0)*di;//reflect y-axis
       cells[i*Nj+j] = NULL;
       crosses[i*Nj+j] = NULL;
       dpsi_cells[i*Nj+j] = NULL;
@@ -59,12 +40,12 @@ ImagePlane::ImagePlane(const std::string filepath,int i,int j,double h,double w)
   }
 }
 
-ImagePlane::ImagePlane(const std::string filepath,int i,int j,double h,double w,double x0,double y0){
-  Ni     = i;
-  Nj     = j;
-  Nm     = Ni*Nj;
-  width  = w;
-  height = h;
+ImagePlane::ImagePlane(int Nx,int Ny,double xmin,double xmax,double ymin,double ymax){
+  Ny   = Ny;
+  Nx   = Nx;
+  grid = new RectGrid(Nx,Ny,xmin,xmax,ymin,ymax);
+
+  Nm   = Ni*Nj;
   S.Ti = Nm;
   S.Tj = Nm;
   C.Ti = Nm;
@@ -72,9 +53,6 @@ ImagePlane::ImagePlane(const std::string filepath,int i,int j,double h,double w,
   B.Ti = Nm;
   B.Tj = Nm;
 
-  img     = (double*) calloc(Nm,sizeof(double));
-  x       = (double*) calloc(Nm,sizeof(double));
-  y       = (double*) calloc(Nm,sizeof(double));
   defl_x  = (double*) calloc(Nm,sizeof(double));
   defl_y  = (double*) calloc(Nm,sizeof(double));
   active  = (int*) calloc(Nm,sizeof(int));
@@ -82,163 +60,21 @@ ImagePlane::ImagePlane(const std::string filepath,int i,int j,double h,double w,
   crosses = (Cross**) malloc(Nm*sizeof(Cross*));
   dpsi_cells = (InterpolationCell**) calloc(Nm,sizeof(InterpolationCell*));
 
-  FitsInterface::readFits(Ni,Nj,img,filepath);
-
-  int i0    = floor(Ni/2);
-  int j0    = floor(Nj/2);
-  double di = height/Ni;
-  double dj = width/Nj;
-
-  // xmax,xmin are the x coordinates of the leftmost and rightmost pixels.
-  // REMEMBER: xmax-xmin != width (Nj*dj).
-  // Similarly for y.
-  xmin = -j0*dj + x0;
-  xmax = (this->Nj-1-j0)*dj + x0;
-  ymin = -i0*di + y0;
-  ymax = (this->Ni-1-i0)*di + y0;
-
   for(int i=0;i<Ni;i++){
     for(int j=0;j<Nj;j++){
-      x[i*Nj+j]   = xmin + j*dj;
-      y[i*Nj+j]   = ymax - i*di;//reflect y-axis
       cells[i*Nj+j] = NULL;
       crosses[i*Nj+j] = NULL;
       dpsi_cells[i*Nj+j] = NULL;
     }
   }
-}
-
-ImagePlane::ImagePlane(int i,int j,double h,double w){
-  Ni     = i;
-  Nj     = j;
-  Nm     = Ni*Nj;
-  width  = w;
-  height = h;
-  S.Ti = Nm;
-  S.Tj = Nm;
-  C.Ti = Nm;
-  C.Tj = Nm;
-  B.Ti = Nm;
-  B.Tj = Nm;
-
-  img     = (double*) calloc(Nm,sizeof(double));
-  x       = (double*) calloc(Nm,sizeof(double));
-  y       = (double*) calloc(Nm,sizeof(double));
-  defl_x  = (double*) calloc(Nm,sizeof(double));
-  defl_y  = (double*) calloc(Nm,sizeof(double));
-  active  = (int*) calloc(Nm,sizeof(int));
-  cells   = (InterpolationCell**) calloc(Nm,sizeof(InterpolationCell*));
-  crosses = (Cross**) malloc(Nm*sizeof(Cross*));
-  dpsi_cells = (InterpolationCell**) calloc(Nm,sizeof(InterpolationCell*));
-
-  int i0    = floor(Ni/2);
-  int j0    = floor(Nj/2);
-  double di = height/Ni;
-  double dj = width/Nj;
-
-  // xmax,xmin are the x coordinates of the leftmost and rightmost pixels.
-  // REMEMBER: xmax-xmin != width (Nj*dj).
-  // Similarly for y.
-  xmin = -j0*dj;
-  xmax = (this->Nj-1-j0)*dj;
-  ymin = -i0*di;
-  ymax = (this->Ni-1-i0)*di;
-
-  for(int i=0;i<Ni;i++){
-    for(int j=0;j<Nj;j++){
-      x[i*Nj+j]   =  (j-j0)*dj;
-      y[i*Nj+j]   = -(i-i0)*di;//reflect y-axis
-      cells[i*Nj+j] = NULL;
-      crosses[i*Nj+j] = NULL;
-      dpsi_cells[i*Nj+j] = NULL;
-    }
-  }
-}
-
-ImagePlane::ImagePlane(int i,int j,double h,double w,double x0,double y0){
-  Ni     = i;
-  Nj     = j;
-  Nm     = Ni*Nj;
-  width  = w;
-  height = h;
-  S.Ti = Nm;
-  S.Tj = Nm;
-  C.Ti = Nm;
-  C.Tj = Nm;
-  B.Ti = Nm;
-  B.Tj = Nm;
-
-  img     = (double*) calloc(Nm,sizeof(double));
-  x       = (double*) calloc(Nm,sizeof(double));
-  y       = (double*) calloc(Nm,sizeof(double));
-  defl_x  = (double*) calloc(Nm,sizeof(double));
-  defl_y  = (double*) calloc(Nm,sizeof(double));
-  active  = (int*) calloc(Nm,sizeof(int));
-  cells   = (InterpolationCell**) calloc(Nm,sizeof(InterpolationCell*));
-  crosses = (Cross**) malloc(Nm*sizeof(Cross*));
-  dpsi_cells = (InterpolationCell**) calloc(Nm,sizeof(InterpolationCell*));
-
-  int i0    = floor(Ni/2);
-  int j0    = floor(Nj/2);
-  double di = height/Ni;
-  double dj = width/Nj;
-
-  // xmax,xmin are the x coordinates of the leftmost and rightmost pixels.
-  // REMEMBER: xmax-xmin != width (Nj*dj).
-  // Similarly for y.
-  xmin = -j0*dj + x0;
-  xmax = (this->Nj-1-j0)*dj + x0;
-  ymin = -i0*di + y0;
-  ymax = (this->Ni-1-i0)*di + y0;
-
-  for(int i=0;i<Ni;i++){
-    for(int j=0;j<Nj;j++){
-      x[i*Nj+j]   = xmin + j*dj;
-      y[i*Nj+j]   = ymax - i*di;//reflect y-axis
-      cells[i*Nj+j] = NULL;
-      crosses[i*Nj+j] = NULL;
-      dpsi_cells[i*Nj+j] = NULL;
-    }
-  }
-}
-
-ImagePlane::ImagePlane(int i,double w,double h){
-  Ni     = 0;
-  Nj     = 0;
-  Nm     = i;
-  width  = w;
-  height = h;
-  S.Ti = Nm;
-  S.Tj = Nm;
-  C.Ti = Nm;
-  C.Tj = Nm;
-  B.Ti = Nm;
-  B.Tj = Nm;
-
-  img     = (double*) calloc(Nm,sizeof(double));
-  x       = (double*) calloc(Nm,sizeof(double));
-  y       = (double*) calloc(Nm,sizeof(double));
-  defl_x  = (double*) calloc(Nm,sizeof(double));
-  defl_y  = (double*) calloc(Nm,sizeof(double));
-  active  = (int*) calloc(Nm,sizeof(int));
-  cells   = (InterpolationCell**) calloc(Nm,sizeof(InterpolationCell*));
-  crosses = (Cross**) malloc(Nm*sizeof(Cross*));
-  dpsi_cells = (InterpolationCell**) calloc(Nm,sizeof(InterpolationCell*));
 }
 
 ImagePlane::ImagePlane(const ImagePlane& image){
   Ni = image.Ni;
   Nj = image.Nj;
   Nm = image.Nm;
-  width  = image.width;
-  height = image.height;
-  xmin = image.xmin;
-  xmax = image.xmax;
-  ymin = image.ymin;
-  ymax = image.ymax;
-  img     = (double*) calloc(Nm,sizeof(double));
-  x       = (double*) calloc(Nm,sizeof(double));
-  y       = (double*) calloc(Nm,sizeof(double));
+  grid = image.grid;
+  
   defl_x  = (double*) calloc(Nm,sizeof(double));
   defl_y  = (double*) calloc(Nm,sizeof(double));
   active  = (int*) calloc(Nm,sizeof(int));
@@ -246,9 +82,6 @@ ImagePlane::ImagePlane(const ImagePlane& image){
   crosses = (Cross**) malloc(Nm*sizeof(Cross*));
   dpsi_cells = (InterpolationCell**) calloc(Nm,sizeof(InterpolationCell*));
   for(int i=0;i<Nm;i++){
-    img[i] = image.img[i];
-    x[i] = image.x[i];
-    y[i] = image.y[i];
     cells[i] = NULL;
     crosses[i] = NULL;
     dpsi_cells[i] = NULL;
@@ -256,9 +89,7 @@ ImagePlane::ImagePlane(const ImagePlane& image){
 }
 
 ImagePlane::~ImagePlane(){
-  free(img);
-  free(x);
-  free(y);
+  delete(grid);
   free(defl_x);
   free(defl_y);
   free(active);
@@ -272,20 +103,11 @@ ImagePlane::~ImagePlane(){
   free(dpsi_cells);
 }
 
-
-void ImagePlane::writeBin(const std::string filename){
-  std::ofstream out(filename,std::ios::out|std::ios::binary);
-  for(int i=0;i<this->Nm;i++){
-    out.write((const char*) (&this->img[i]),sizeof(double));
-  }
-  out.close();
-}
-
 void ImagePlane::writeImage(const std::string filename){  
   std::vector<std::string> key{"WIDTH","HEIGHT"};
-  std::vector<std::string> val{std::to_string(this->width),std::to_string(this->width)};
+  std::vector<std::string> val{std::to_string(this->grid->width),std::to_string(this->grid->height)};
   std::vector<std::string> txt{"width of the image in arcsec","height of the image in arcsec"};
-  FitsInterface::writeFits(this->Ni,this->Nj,this->img,key,val,txt,filename);
+  FitsInterface::writeFits(this->Ni,this->Nj,this->grid->z,key,val,txt,filename);
 }
 
 void ImagePlane::readS(const std::string filepath){
@@ -300,7 +122,6 @@ void ImagePlane::readS(const std::string filepath){
 
     double* fits = (double*) malloc(this->Nm*sizeof(double));
     FitsInterface::readFits(this->Ni,this->Nj,fits,filepath);
-
     this->Nmask = 0.0;
     for(int i=0;i<this->Nm;i++){
       if( fits[i] == 1 ){
@@ -314,41 +135,6 @@ void ImagePlane::readS(const std::string filepath){
     
   }
 }
-
-void ImagePlane::maskData(std::map<int,int> lookup,ImagePlane* masked){
-  typedef std::map<int,int>::iterator it;
-  for(it myiterator=lookup.begin();myiterator!=lookup.end();myiterator++){
-    masked->img[ myiterator->second ] = this->img[ myiterator->first ];
-    masked->x[ myiterator->second ]   = this->x[ myiterator->first ];
-    masked->y[ myiterator->second ]   = this->y[ myiterator->first ];
-  }
-}
-
-/*
-void ImagePlane::setMaskedC(mytable* Cout,mytable* S,mytable* C){
-  //this function does the same as multiplying algebraically tables S and C
-
-  int* Sfull = (int*) calloc(this->Nm,sizeof(int));
-  for(int k=0;k<this->S->tri.size();k++){
-    Sfull[ this->S->tri[k].i ] = 1;
-  }
-
-  int i0,j0;
-  double val;
-  for(int k=0;k<C->tri.size();k++){
-    i0  = C->tri[k].i;
-    j0  = C->tri[k].j;
-    val = C->tri[k].v;
-
-    if( Sfull[i0] == 1 && Sfull[j0] == 1 ){
-      Cout->tri.push_back({this->lookup[i0],this->lookup[j0],val});
-    }
-    
-  }
-
-  free(Sfull);
-}
-*/
 
 void ImagePlane::readC(const std::string flag,const std::string filepath){
   double value;
@@ -391,7 +177,6 @@ void ImagePlane::readC(const std::string flag,const std::string filepath){
       free(fits);
 
     }
-
 
   } else if( flag == "correlated" ){
 
@@ -445,12 +230,9 @@ void ImagePlane::readB(const std::string filepath,int i,int j,int ci,int cj){
       }
     }
 
-
-
     // Read PSF from file
     double* fits = (double*) malloc(this->Nm*sizeof(double));
     FitsInterface::readFits(this->Ni,this->Nj,fits,filepath);
-
 
     // Report on the peak location of the PSF
     double vmax = fits[0];
@@ -491,9 +273,6 @@ void ImagePlane::readB(const std::string filepath,int i,int j,int ci,int cj){
       //      std::cout << "Particular form of the PSF: it it neither even-even nor odd-odd" << std::endl;
     }
 
-
-
-
     // Set cropped PSF and normalize
     double* blur = (double*) calloc(Ncropx*Ncropy,sizeof(double));
     int offset_y = (Pi - Ncropy)/2;
@@ -512,9 +291,6 @@ void ImagePlane::readB(const std::string filepath,int i,int j,int ci,int cj){
       blur[i] *= fac;
     }    
     
-
-
-
     // Set quad-kernel and odd/even functions
     int Nquadx,Nquady;
     void (ImagePlane::*xfunc)(int,int,int,int,int&,int&,int&);
@@ -560,7 +336,6 @@ void ImagePlane::readB(const std::string filepath,int i,int j,int ci,int cj){
     }
 
     free(blur);
-
   }
 }
   
@@ -596,7 +371,6 @@ void ImagePlane::setCroppedLimitsOdd(int k,int Ncrop,int Nimg,int Nquad,int &Npr
   }
 }
 
-
 //void ImagePlane::printCross(int k,mytable Ds){
 void ImagePlane::printCross(int k){
   double coeffs[12] = {0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0};
@@ -624,15 +398,15 @@ void ImagePlane::printCross(int k){
 }
 
 void ImagePlane::lowerResRebinAdditive(ImagePlane* newImage){
-  double inf_dx = this->width/this->Nj;
-  double inf_dy = this->height/this->Ni;
-  double new_dx = newImage->width/newImage->Nj;
-  double new_dy = newImage->height/newImage->Ni;
+  double inf_dx = this->grid->width/this->Nj;
+  double inf_dy = this->grid->height/this->Ni;
+  double new_dx = newImage->grid->width/newImage->Nj;
+  double new_dy = newImage->grid->height/newImage->Ni;
   for(int i=0;i<this->Ni;i++){
     int ii = (int) floor(i*inf_dy/new_dy);
     for(int j=0;j<this->Nj;j++){
       int jj = (int) floor(j*inf_dx/new_dx);
-      newImage->img[ii*newImage->Nj + jj] += this->img[i*this->Nj + j];
+      newImage->grid->z[ii*newImage->Nj + jj] += this->grid->z[i*this->Nj + j];
     }
   }
 }
@@ -640,20 +414,34 @@ void ImagePlane::lowerResRebinAdditive(ImagePlane* newImage){
 void ImagePlane::lowerResRebinIntegrate(ImagePlane* newImage){
   // Integrating over equally sized elements is equivalent to getting the average
   int* counts = (int*) calloc(newImage->Nm,sizeof(int));
-  double inf_dx = this->width/this->Nj;
-  double inf_dy = this->height/this->Ni;
-  double new_dx = newImage->width/newImage->Nj;
-  double new_dy = newImage->height/newImage->Ni;
+  double inf_dx = this->grid->width/this->Nj;
+  double inf_dy = this->grid->height/this->Ni;
+  double new_dx = newImage->grid->width/newImage->Nj;
+  double new_dy = newImage->grid->height/newImage->Ni;
   for(int i=0;i<this->Ni;i++){
     int ii = (int) floor(i*inf_dy/new_dy);
     for(int j=0;j<this->Nj;j++){
       int jj = (int) floor(j*inf_dx/new_dx);
-      newImage->img[ii*newImage->Nj + jj] += this->img[i*this->Nj + j];
+      newImage->grid->z[ii*newImage->Nj + jj] += this->grid->z[i*this->Nj + j];
       counts[ii*newImage->Nj + jj] += 1;
     }
   }
   for(int i=0;i<newImage->Nm;i++){
-    newImage->img[i] = newImage->img[i]/counts[i];
+    newImage->grid->z[i] = newImage->grid->z[i]/counts[i];
   }
   free(counts);
 }
+
+
+
+
+/*
+void ImagePlane::maskData(std::map<int,int> lookup,ImagePlane* masked){
+  typedef std::map<int,int>::iterator it;
+  for(it myiterator=lookup.begin();myiterator!=lookup.end();myiterator++){
+    masked->img[ myiterator->second ] = this->img[ myiterator->first ];
+    masked->x[ myiterator->second ]   = this->x[ myiterator->first ];
+    masked->y[ myiterator->second ]   = this->y[ myiterator->first ];
+  }
+}
+*/

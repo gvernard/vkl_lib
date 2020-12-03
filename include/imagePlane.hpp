@@ -7,6 +7,8 @@
 
 #include "tableDefinition.hpp"
 
+class RectGrid;
+
 class Cross {
 public:
   int i0;
@@ -37,17 +39,8 @@ public:
   int Ni;                    //pixels in x direction
   int Nj;                    //pixels in y direction
   int Nm;                    //total pixels in the image data
-  //  std::map<int,int> lookup;  //matching the indices of the data pixels to the indices of the mask pixels
+  RectGrid* grid;
   int Nmask;                 //pixels in the mask
-  double width;              //in arcsec
-  double height;             //in arcsec
-  double xmin;
-  double xmax;
-  double ymin;
-  double ymax;
-  double* img;               //values of the pixels
-  double* x;                 //pixel x-coordinates in arcsec
-  double* y;                 //pixel y-coordinates in arcsec
   double* defl_x;            //deflected x coordinates
   double* defl_y;            //deflected y coordinates
   int* active;               //active image pixels used in the construction of the adaptive grid
@@ -59,23 +52,16 @@ public:
   mytable S;
   std::string noise_flag;
 
-  ImagePlane(){};
-  ImagePlane(const std::string filepath,int i,int j,double w,double h);                      //used to read images
-  ImagePlane(const std::string filepath,int i,int j,double w,double h,double x0,double y0);  //used to read images
-  ImagePlane(int i,int j,double w,double h);                                                 //used to create images
-  ImagePlane(int i,int j,double w,double h,double x0,double y0);                             //used to create images
-  ImagePlane(int i,double w,double h);                                                       //used to create masked images
+  ImagePlane(const std::string filepath,int Nx,int Ny,double xmin,double xmax,double ymin,double ymax);  // used to read images
+  ImagePlane(int Ni,int Nj,double xmin,double xmax,double ymin,double ymax);                             // used to create images
   ImagePlane(const ImagePlane& image);
   ~ImagePlane();
 
   void writeImage(const std::string filename);
-  void writeBin(const std::string filename);
   void readB(const std::string filepath,int i,int j,int ci,int cj);
   void readC(const std::string flag,const std::string filepath);
   void readS(const std::string filepath);
-  //  void setMaskedC(mytable* Cout,mytable* S,mytable* C);
-  void maskData(std::map<int,int> lookup,ImagePlane* masked);
-  //  void printCross(int k,mytable Ds);
+  //  void maskData(std::map<int,int> lookup,ImagePlane* masked);
   void printCross(int k);
   void lowerResRebinAdditive(ImagePlane* newImage);
   void lowerResRebinIntegrate(ImagePlane* newImage);

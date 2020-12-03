@@ -18,6 +18,11 @@ void RectGrid::common_constructor(int Nx,int Ny,double xmin,double xmax,double y
   this->Ny = Ny;
   this->width  = xmax - xmin;
   this->height = ymax - ymin;
+  this->xmin = xmin;
+  this->xmax = xmax;
+  this->ymin = ymin;
+  this->ymax = ymax;
+
   this->step_x = this->width/this->Nx;
   this->step_y = this->height/this->Ny;
 
@@ -56,7 +61,7 @@ void RectGrid::set_interp(std::string interp){
 
 
 RectGrid::RectGrid(const RectGrid& grid){
-  this->common_constructor(grid.Nx,grid.Ny,grid.bound_x[0],grid.bound_x[grid.Nx],grid.bound_y[0],grid.bound_y[grid.Ny],grid.options);
+  this->common_constructor(grid.Nx,grid.Ny,grid.xmin,grid.xmax,grid.ymin,grid.ymax,grid.options);
   for(int k=0;k<grid.Nz;k++){
     this->z[k] = grid.z[k];
   }
@@ -128,7 +133,7 @@ RectGrid* RectGrid::embeddedNewGrid(int new_Nx,int new_Ny){
 }
 
 bool RectGrid::point_in_grid(double x,double y){
-  if( x < this->bound_x[0] || this->bound_x[this->Nx] < x || y < this->bound_y[0] || this->bound_y[this->Ny] < y ){
+  if( x < this->xmin || this->xmax < x || y < this->ymin || this->ymax < y ){
     return false;
   } else {
     return true;
@@ -144,8 +149,8 @@ bool RectGrid::point_between_pixel_centers(double x,double y,int boundary_size){
 }
 
 void RectGrid::match_point_to_pixel(double x,double y,int& i0,int& j0){
-  i0 = (int) floor( (y-this->bound_y[0])/this->step_y );
-  j0 = (int) floor( (x-this->bound_x[0])/this->step_x );
+  i0 = (int) floor( (y-this->ymin)/this->step_y );
+  j0 = (int) floor( (x-this->ymax)/this->step_x );
 }
 
 bool RectGrid::match_point_to_closest_4(double x,double y,int* i,int* j){

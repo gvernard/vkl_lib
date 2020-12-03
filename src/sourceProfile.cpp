@@ -2,6 +2,7 @@
 
 #include "sourceProfile.hpp"
 #include "fitsInterface.hpp"
+#include "rectGrid.hpp"
 
 #include <iostream>
 #include <string>
@@ -214,109 +215,34 @@ void Analytic::outputProfile(std::string filename){
 
 
 
-//Derived class from BaseProfile: fromFITS
+//Derived class from BaseProfile: Custom
 //===============================================================================================================
-fromFITS::fromFITS(std::string filename,int Ni,int Nj,double height,double width,double x0,double y0,double Mtot,std::string interp){
-  this->type = "fromfits";
-  this->Ni = Ni;
-  this->Nj = Nj;
-  this->height = height;
-  this->width  = width;
-  this->x0 = x0;
-  this->y0 = y0;
-  this->Mtot = Mtot;
-  this->mySource = new ImagePlane(filename,Ni,Nj,height,width);
-  scaleProfile();
-  // ImagePlane sets the coordinate origin in the center of the image, so I can re-position it here.
-  for(int i=0;i<this->mySource->Nm;i++){
-    this->mySource->x[i] += x0;
-    this->mySource->y[i] += y0;
-  }
-  this->mySource->xmin += x0;
-  this->mySource->xmax += x0;
-  this->mySource->ymin += y0;
-  this->mySource->ymax += y0;
-  this->dx = (this->mySource->x[1] - this->mySource->x[0]);
-  this->dy = (this->mySource->y[this->mySource->Ni] - this->mySource->y[0]);
-  this->interp = interp;
+double Custom::value(double x,double y){
+  double val = (this->*interp2d)(x,y);
+  return val;
 }
 
-double fromFITS::value(double x,double y){
-  if( this->interp == "none" ){
-
-    if( this->mySource->xmin < x && x < this->mySource->xmax && this->mySource->ymin < y && y < this->mySource->ymax ){
-      // Source and Image grids MUST be the same, therefore I just need to match the right pixels (no interpolation)
-      int i = (int) floor((this->mySource->ymax - y)*this->mySource->Ni/this->mySource->height); // y-axis is reflected
-      int j = (int) floor((x - this->mySource->xmin)*this->mySource->Nj/this->mySource->width);
-      //int j = (int) floor((this->mySource->xmin - x)*this->mySource->Nj/this->mySource->width);
-      return this->mySource->img[i*this->mySource->Nj + j];
-    } else {
-      return 0;
-    }
-
-  } else if( this->interp == "bilinear" ){
-
-    if( this->mySource->xmin < x && x < (this->mySource->xmax-this->dx) && this->mySource->ymin < y && y < (this->mySource->ymax-this->dy) ){
-
-      int i = (int) floor( (this->mySource->ymax - this->dy - y)*(this->mySource->Ni-1)/(this->mySource->height - this->dy) ); // y-axis is reflected
-      int j = (int) floor( (x - this->mySource->xmin)*(this->mySource->Nj-1)/(this->mySource->width - this->dx) );
-      
-      double ddx = (x - this->mySource->x[i*this->mySource->Nj+j])/this->dx;
-      double ddy = (y - this->mySource->y[i*this->mySource->Nj+j])/this->dy;
-      
-      double w00 = (1-ddx)*(1-ddy);
-      double w01 = (1-ddx)*ddy;
-      double w10 = ddx*(1-ddy);
-      double w11 = ddx*ddy;
-      
-      double f00 = this->mySource->img[i*this->mySource->Nj+j];
-      double f01 = this->mySource->img[(i+1)*this->mySource->Nj+j];
-      double f10 = this->mySource->img[i*this->mySource->Nj+j+1];
-      double f11 = this->mySource->img[(i+1)*this->mySource->Nj+j+1];
-      
-      double ff = w00*f00 + w01*f01 + w10*f10 + w11*f11;
-      return ff;
-    } else {
-      return 0;
-    }
-
-  } else {
-
-    std::cout << "Unknown interpolation scheme!" << std::endl;
-
-  }
-    
-       
-  //   // THIS PART DOES INTERPOLATION
-    
-
-}
-
-void fromFITS::outputProfile(std::string filename){
-  double xmin = this->x0 - this->width/2.0;
-  double xmax = this->x0 + this->width/2.0;
-  double ymin = this->y0 - this->height/2.0;
-  double ymax = this->y0 + this->height/2.0;
-  std::vector<double> ranges = {xmin,xmax,ymin,ymax};
+void Custom::outputProfile(std::string filename){
+  std::vector<double> ranges = {this->xmin,this->xmax,this->ymin,this->ymax};
   double half_range = 0.0;
   for(int i=0;i<ranges.size();i++){
     if( fabs(ranges[i]) > half_range ){
       half_range = fabs(ranges[i]);
     }
   }
-  this->output_res = 2.0*half_range*this->Nj/this->width;
+  this->output_res = 2.0*half_range*this->Nx/this->width;
   this->writeProfile(filename,half_range);
 }
 
-void fromFITS::scaleProfile(){
+void Custom::scaleProfile(){
   double sum = 0.0;
-  double dS = (this->width/this->Nj) * (this->height/this->Ni);
-  for(int i=0;i<this->mySource->Nm;i++){
-    sum += this->mySource->img[i]*dS;
+  double dS = this->step_x*this->step_y;
+  for(int i=0;i<this->Nz;i++){
+    sum += this->z[i]*dS;
   }
   double factor = pow(10.0,-0.4*this->Mtot)/sum;
-  for(int i=0;i<this->mySource->Nm;i++){
-    this->mySource->img[i] *= factor;
+  for(int i=0;i<this->Nz;i++){
+    this->z[i] *= factor;
   }
 }
 

@@ -10,10 +10,11 @@
 
 #include "nonLinearPars.hpp"
 #include "imagePlane.hpp"
+#include "rectGrid.hpp"
+
 
 typedef CGAL::Exact_predicates_inexact_constructions_kernel K;
 typedef K::Point_2 Point;
-
 
 class BaseProfile {
 public:
@@ -151,29 +152,22 @@ private:
 
 
 
-class fromFITS: public BaseProfile {
+class Custom: public BaseProfile,public RectGrid {
 public:
-  fromFITS(std::string filename,int Ni,int Nj,double height,double width,double x0,double y0,double Mtot,std::string interp);
-  ~fromFITS(){
-    delete(mySource);
+  Custom(std::string filepath,int Nx,int Ny,double xmin,double xmax,double ymin,double ymax,double Mtot,std::string interp): BaseProfile(),RectGrid(Nx,Ny,xmin,xmax,ymin,ymax,filepath){
+    this->type = "custom";
+    this->Mtot = Mtot;
+    scaleProfile();
+    this->set_interp(interp);
   }
+  ~Custom(){}
+
+  double Mtot;
+
   double value(double x,double y);
   void outputProfile(std::string filename);
   void scaleProfile();
   void inverseScaleProfile(){};
-  
-private:
-  int Ni;
-  int Nj;
-  double height;
-  double width;
-  double x0;
-  double y0;
-  double Mtot;
-  double dx;
-  double dy;
-  ImagePlane* mySource;
-  std::string interp;
 };
 
 

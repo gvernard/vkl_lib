@@ -8,7 +8,7 @@
 #include "imagePlane.hpp"
 #include "sourcePlane.hpp"
 #include "tableDefinition.hpp"
-
+#include "rectGrid.hpp"
 
 //Abstract class: BaseMassModel
 //===============================================================================================================
@@ -252,7 +252,7 @@ Pert::Pert(int a,int b,double c,double d,std::string reg){
 
 Pert::Pert(int a,int b,ImagePlane* image,std::string reg){
   this->type = "pert";
-  this->dpsi = new FixedSource(a,b,image->xmin,image->xmax,image->ymin,image->ymax,reg);
+  this->dpsi = new FixedSource(a,b,image->grid->xmin,image->grid->xmax,image->grid->ymin,image->grid->ymax,reg);
   this->dpsi->inMask(image);
 
   this->dpsi_dx = (double*) calloc(this->dpsi->Sm,sizeof(double));
@@ -280,8 +280,8 @@ Pert::Pert(std::string filepath,int a,int b,double c,double d,std::string reg){
   this->di = this->dpsi->height/(this->dpsi->Si);
   this->dj = this->dpsi->width/(this->dpsi->Sj);
 
-  ImagePlane* image = new ImagePlane(filepath,a,b,c,d);
-  replaceDpsi(image->img);
+  ImagePlane* image = new ImagePlane(filepath,a,b,0,c,0,d);
+  replaceDpsi(image->grid->z);
   delete(image);
 
   updatePert();
@@ -432,8 +432,8 @@ void Pert::createAint(ImagePlane* data){
   int Sj = this->dpsi->Sj;
 
   for(int k=0;k<data->Nm;k++){
-    int j = floor( (data->x[k]-this->dpsi->xmin)/this->dj );
-    int i = floor( (data->y[k]-this->dpsi->ymin)/this->di );  
+    int j = floor( (data->grid->center_x[k]-this->dpsi->xmin)/this->dj );
+    int i = floor( (data->grid->center_y[k]-this->dpsi->ymin)/this->di );  
 
     if( j == this->dpsi->Sj-1 ){
       j = j-2;
@@ -442,10 +442,10 @@ void Pert::createAint(ImagePlane* data){
       i = i-2;
     }
 
-    ya  = data->y[k] - this->dpsi->y[i+1];
-    yb  = this->dpsi->y[i] - data->y[k];
-    xa  = data->x[k] - this->dpsi->x[j];
-    xb  = this->dpsi->x[j+1] - data->x[k];
+    ya  = data->grid->center_y[k] - this->dpsi->y[i+1];
+    yb  = this->dpsi->y[i] - data->grid->center_y[k];
+    xa  = data->grid->center_x[k] - this->dpsi->x[j];
+    xb  = this->dpsi->x[j+1] - data->grid->center_x[k];
 
     w00 = xb*ya/den;
     w10 = xb*yb/den;
@@ -480,8 +480,8 @@ void Pert::createCrosses(ImagePlane* image){
 
   for(int h=0;h<image->Nm;h++){
     // Step 1: find the i-j indices of the top-left point in the dpsi grid, in the dpsi pixel where the ray lies (in the image plane)
-    j0 = floor( (image->x[h] - this->dpsi->xmin)/this->dj );
-    i0 = floor( (this->dpsi->ymax - image->y[h])/this->di ); // y-axis is reflected (indices i start from the top)
+    j0 = floor( (image->grid->center_x[h] - this->dpsi->xmin)/this->dj );
+    i0 = floor( (this->dpsi->ymax - image->grid->center_y[h])/this->di ); // y-axis is reflected (indices i start from the top)
     if( j0 >= this->dpsi->Sj-1 ){
       j0 = this->dpsi->Sj - 2;
     }
@@ -498,10 +498,10 @@ void Pert::createCrosses(ImagePlane* image){
     four_j[3] = j0+1;
 
     // Step 2: get the interpolation weights for the ray in the dpsi pixel
-    ya = image->y[h]                           - this->dpsi->y[(i0+1)*this->dpsi->Sj];
-    yb = this->dpsi->y[i0*this->dpsi->Sj]      - image->y[h];
-    xa = image->x[h]                           - this->dpsi->x[i0*this->dpsi->Sj+j0];
-    xb = this->dpsi->x[i0*this->dpsi->Sj+j0+1] - image->x[h];
+    ya = image->grid->center_y[h]                           - this->dpsi->y[(i0+1)*this->dpsi->Sj];
+    yb = this->dpsi->y[i0*this->dpsi->Sj]      - image->grid->center_y[h];
+    xa = image->grid->center_x[h]                           - this->dpsi->x[i0*this->dpsi->Sj+j0];
+    xb = this->dpsi->x[i0*this->dpsi->Sj+j0+1] - image->grid->center_x[h];
     four_w[0] = xb*ya/den;
     four_w[1] = xa*ya/den;
     four_w[2] = xb*yb/den;
@@ -682,8 +682,8 @@ void Pert::getConvergence(ImagePlane* kappa){
   int Ni = kappa->Ni;
   int Nj = kappa->Nj;
 
-  double dx2 = pow( fabs(kappa->x[1]  - kappa->x[0]), 2);
-  double dy2 = pow( fabs(kappa->y[Nj] - kappa->y[0]), 2);
+  double dx2 = pow( fabs(kappa->grid->center_x[1]  - kappa->grid->center_x[0]), 2);
+  double dy2 = pow( fabs(kappa->grid->center_y[Nj] - kappa->grid->center_y[0]), 2);
 
 
   // Calculate second derivatives:
@@ -704,7 +704,7 @@ void Pert::getConvergence(ImagePlane* kappa){
   */
   for(int i=0;i<2;i++){
     for(int j=0;j<Nj;j++){
-      kappa->img[i*Nj+j] = 0.0;
+      kappa->grid->z[i*Nj+j] = 0.0;
     }
   }
 
@@ -715,20 +715,20 @@ void Pert::getConvergence(ImagePlane* kappa){
     ddy = 1.0*this->dpsi->src[(i-1)*Nj] - 2.0*this->dpsi->src[i*Nj] + 1.0*this->dpsi->src[(i+1)*Nj];
     kappa->img[i*Nj] = 0.5*(ddx + ddy);
     */
-    kappa->img[i*Nj] = 0.0;
-    kappa->img[i*Nj+1] = 0.0;
+    kappa->grid->z[i*Nj] = 0.0;
+    kappa->grid->z[i*Nj+1] = 0.0;
     for(int j=2;j<Nj-2;j++){
       ddx = (1.0*this->dpsi->src[i*Nj+j-1]   - 2.0*this->dpsi->src[i*Nj+j] + 1.0*this->dpsi->src[i*Nj+j+1]   )/dx2;
       ddy = (1.0*this->dpsi->src[(i-1)*Nj+j] - 2.0*this->dpsi->src[i*Nj+j] + 1.0*this->dpsi->src[(i+1)*Nj+j] )/dy2;
-      kappa->img[i*Nj+j] = 0.5*(ddx + ddy);
+      kappa->grid->z[i*Nj+j] = 0.5*(ddx + ddy);
     }
     /*
     ddx = 1.0*this->dpsi->src[i*Nj+Nj-3] - 2.0*this->dpsi->src[i*Nj+Nj-2] + 1.0*this->dpsi->src[i*Nj+Nj-1];
     ddy = 1.0*this->dpsi->src[(i-1)*Nj+Nj-1] - 2.0*this->dpsi->src[i*Nj+Nj-1] + 1.0*this->dpsi->src[(i+1)*Nj+Nj-1];
     kappa->img[i*Nj+Nj-1] = 0.5*(ddx + ddy);
     */
-    kappa->img[i*Nj+Nj-2] = 0.0;
-    kappa->img[i*Nj+Nj-1] = 0.0;
+    kappa->grid->z[i*Nj+Nj-2] = 0.0;
+    kappa->grid->z[i*Nj+Nj-1] = 0.0;
   }
 
   /*
@@ -747,7 +747,7 @@ void Pert::getConvergence(ImagePlane* kappa){
   */
   for(int i=Ni-2;i<Ni;i++){
     for(int j=0;j<Nj;j++){
-      kappa->img[i*Nj+j] = 0.0;
+      kappa->grid->z[i*Nj+j] = 0.0;
     }
   }
 
@@ -815,8 +815,8 @@ void CollectionMassModels::all_defl(ImagePlane* image){
   double xin,yin;
   
   for(int j=0;j<image->Nm;j++){
-    xin = image->x[j];
-    yin = image->y[j];
+    xin = image->grid->center_x[j];
+    yin = image->grid->center_y[j];
     double ax   = 0.0;
     double ay   = 0.0;
     for(int i=0;i<this->models.size();i++){
@@ -840,13 +840,13 @@ double CollectionMassModels::all_kappa(double xin,double yin){
 void CollectionMassModels::all_kappa(ImagePlane* image,ImagePlane* kappa_tot){
   double xin,yin;
   for(int j=0;j<image->Nm;j++){
-    xin = image->x[j];
-    yin = image->y[j];
+    xin = image->grid->center_x[j];
+    yin = image->grid->center_y[j];
     double k = 0.0;
     for(int i=0;i<this->models.size();i++){
       k += this->models[i]->kappa(xin,yin);
     }
-    kappa_tot->img[j] = k;
+    kappa_tot->grid->z[j] = k;
   }
 }
 
@@ -870,8 +870,8 @@ void CollectionMassModels::all_gamma(ImagePlane* image,ImagePlane* gamma_mag,Ima
   double xin,yin;
   double mag,phi;
   for(int j=0;j<image->Nm;j++){
-    xin = image->x[j];
-    yin = image->y[j];
+    xin = image->grid->center_x[j];
+    yin = image->grid->center_y[j];
     double gamma_x = 0.0;
     double gamma_y = 0.0;
     for(int i=0;i<this->models.size();i++){
@@ -882,8 +882,8 @@ void CollectionMassModels::all_gamma(ImagePlane* image,ImagePlane* gamma_mag,Ima
     gamma_x += this->mpars["gx"];
     gamma_y += this->mpars["gy"];
 
-    gamma_mag->img[j] = hypot(gamma_x,gamma_y);
-    gamma_phi->img[j] = 0.5*atan2(gamma_y,gamma_x);
+    gamma_mag->grid->z[j] = hypot(gamma_x,gamma_y);
+    gamma_phi->grid->z[j] = 0.5*atan2(gamma_y,gamma_x);
   }
 }
 
@@ -896,9 +896,9 @@ double CollectionMassModels::detJacobian(double xin,double yin){
 void CollectionMassModels::detJacobian(ImagePlane* image,ImagePlane* detA){
   double xin,yin;
   for(int j=0;j<image->Nm;j++){
-    xin = image->x[j];
-    yin = image->y[j];
-    detA->img[j] = this->detJacobian(xin,yin);
+    xin = image->grid->center_x[j];
+    yin = image->grid->center_y[j];
+    detA->grid->z[j] = this->detJacobian(xin,yin);
   }
 }
 
@@ -914,13 +914,13 @@ double CollectionMassModels::all_psi(double xin,double yin){
 void CollectionMassModels::all_psi(ImagePlane* image,ImagePlane* psi_tot){
   double xin,yin;
   for(int j=0;j<image->Nm;j++){
-    xin = image->x[j];
-    yin = image->y[j];
+    xin = image->grid->center_x[j];
+    yin = image->grid->center_y[j];
     double psi = 0.0;
     for(int i=0;i<this->models.size();i++){
       psi += this->models[i]->psi(xin,yin);
     }
     psi += this->mpars["gx"]*(xin*xin-yin*yin)/2.0 + this->mpars["gy"]*xin*yin;
-    psi_tot->img[j] = psi;
+    psi_tot->grid->z[j] = psi;
   }
 }

@@ -7,141 +7,59 @@
 #include <map>
 #include <iostream>
 
-/*
-#include <boost/geometry.hpp> 
-#include <boost/geometry/geometries/polygon.hpp>
-#include <boost/geometry/geometries/adapted/boost_tuple.hpp>
-#include <boost/geometry/algorithms/append.hpp> 
-BOOST_GEOMETRY_REGISTER_BOOST_TUPLE_CS(cs::cartesian)
-*/
-
 #include "covKernels.hpp"
 #include "tableDefinition.hpp"
-
-class Nlpar;
-class ImagePlane;
-class CollectionMassModels;
 
 
 class BaseSourcePlane {
 public:
   std::string type;                // adaptive or regular
-  int Si;                          // pixels in x, if adaptive then Si is set to 0
-  int Sj;                          // pixels in y, if adaptive then Sj is set to 0
   int Sm;                          // total number of pixels
-  double* src;                     // values of the pixels
-  double* x;                       // pixel x-coordinates
-  double* y;                       // pixel y-coordinates
-  double* s_dx;                    // source derivative in x
-  double* s_dy;                    // source derivative in y
-  int* mask_vertices;              // source masked pixels indices (0 masked, 1, not masked)
-  std::map<int,int> in_total;      // map matching the index of the pixel inside the mask with the one in the total source plane.
-  std::map<int,int> total_in;      // the opposite from above
-  double* lambda_out;              // regularization parameters lambda_out for the source pixels outside the mask (0 inside the mask)
-  int Smask;                       // number of source pixels in the image mask
-  std::vector<double> bound_x;     // embedding polygon vertex x-coordinates
-  std::vector<double> bound_y;     // embedding polygon vertex y-coordinates
   std::string reg;                 // name of the regularization scheme
   int eigenSparseMemoryAllocForH;  // estimate of the non-zero elements per row of the regularization matrix H
-  bool sample_reg = false;         // sampling regularization matrix related parameters
-  double lambda_out_sum;           // the sum of the log (ln) entries of lambda_out
   BaseCovKernel* kernel;           // pointer to kernel class
-  mytable L;
   mytable H;
-  mytable Ds;
-  
 
   BaseSourcePlane(){};
-  BaseSourcePlane(const BaseSourcePlane& other);
+  BaseSourcePlane(const BaseSourcePlane& other){
+    type = other.type;
+    Sm   = other.Sm;
+    reg  = other.reg;
+    H.Ti = other.H.Ti;
+    H.Tj = other.H.Tj;
+    eigenSparseMemoryAllocForH = other.eigenSparseMemoryAllocForH;
+  };
   ~BaseSourcePlane(){
-    free(src);
-    free(x);
-    free(y);
-    free(s_dx);
-    free(s_dy);
-    free(mask_vertices);
-    free(lambda_out);
     if( this->reg == "covariance_kernel" ){
       delete this->kernel;
     }
   };
-
-
-  //virtual members
+  
   virtual BaseSourcePlane* clone() = 0;
   virtual void constructH() = 0;
   virtual void outputSource(const std::string path) = 0;
   virtual void outputSourceErrors(double* errors,const std::string path) = 0;
-  virtual void constructDerivatives() = 0;             // constructs the derivatives of the source on the source grid
-  virtual void constructDs(ImagePlane* image) = 0;     // interpolates the derivatives of the source on the deflected image grid
-  virtual void createInterpolationWeights(ImagePlane* image) = 0;
-  virtual void inMask(ImagePlane* image) = 0;
-  virtual void outputMask(const std::string path) = 0;
-
-  //non-virtual members
-  void normalize();
-  void constructL(ImagePlane* image);
-  void setSourceCovariance(std::vector<Nlpar> reg_pars){};
 };
 
 
 class FixedSource: public BaseSourcePlane {
 public:
-  FixedSource(int Ni,int Nj,double size,std::string reg_scheme);
-  FixedSource(int Ni,int Nj,double width,double height,std::string reg_scheme);
-  FixedSource(int Ni,int Nj,double xmin,double xmax,double ymin,double ymax,std::string reg_scheme);
+  RectGrid* grid;
+
+  FixedSource(int Nx,int Ny,double xmin,double xmax,double ymin,double ymax,std::string reg_scheme);
   FixedSource(const FixedSource& source) : BaseSourcePlane(source) {};
   virtual FixedSource* clone(){
     return new FixedSource(*this);
   };
-
-  virtual void createInterpolationWeights(ImagePlane* image);
+  ~FixedSource(){
+    delete(grid);
+  }
+  
   virtual void constructH();
-  virtual void constructDerivatives(){};
-  virtual void constructDs(ImagePlane* image){};
   virtual void outputSource(const std::string path);
-  virtual void outputSourceErrors(double* errors,const std::string path);
-  virtual void inMask(ImagePlane* image);
-  virtual void outputMask(const std::string path);
-
-  void setGridRect(double width,double height);
-  void setGridRect(double xmin,double xmax,double ymin,double ymax);
-  void boundPolygon();
-  bool pointInPolygon(double x,double y);
-
-  double xmin;
-  double xmax;
-  double ymin;
-  double ymax;
-  double width;
-  double height;
+  virtual void outputSourceErrors(double* errors,const std::string path){};
 };
 
-/*
-class FloatingSource: public BaseSourcePlane {
-public:
-
-  //virtual members
-  FloatingSource(int source_i,int source_j,double size,double x0,double y0,std::string reg_scheme);
-  void createInterpolationWeights(ImagePlane* image);
-  void constructH();
-  void constructDs(ImagePlane* image){};
-  void outputSource(const std::string path);
-  void outputSourceErrors(double* errors,const std::string path);
-
-  //non-virtual members
-  void setGrid(std::map<std::string,std::string> pars);
-  void boundPolygon();
-  bool pointInPolygon(double x,double y);
-
-  double x0;
-  double y0;
-  double xmin;
-  double xmax;
-  double ymin;
-  double ymax;
-};
-*/
 
 class AdaptiveSource: public BaseSourcePlane {
 public:
@@ -153,15 +71,11 @@ public:
   };
   ~AdaptiveSource();
 
-  virtual void createInterpolationWeights(ImagePlane* image);
   virtual void constructH();
-  virtual void constructDerivatives();
-  virtual void constructDs(ImagePlane* image);
   virtual void outputSource(const std::string path);
   virtual void outputSourceErrors(double* errors,const std::string path);
-  virtual void inMask(ImagePlane* image);
-  virtual void outputMask(const std::string path){};
 
+  void constructDerivatives();
   void createAdaGrid(ImagePlane* image,CollectionMassModels* mycollection);
   void createDelaunay();
   void writeTriangles();

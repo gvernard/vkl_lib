@@ -9,9 +9,6 @@
 
 #include "json/json.h"
 
-// In this file: BasePrior, Uni, Gauss, Exp, and FactoryPrior
-//               Nlpar
-
 class BasePrior;
 
 class Nlpar {
