@@ -50,7 +50,7 @@ public:
   bool match_point_to_closest_4(double x,double y,int* i,int* j);
   bool match_point_to_closest_16(double x,double y,int* i,int* j);
 
-  double interp2d(double x,double y);
+  double (RectGrid::*interp2d)(double x,double y);
   double interp2d_bilinear(double x,double y);
   double interp2d_bicubic(double x,double y);
   
@@ -62,7 +62,8 @@ public:
     
 private:
   void common_constructor(int Nx,int Ny,double xmin,double xmax,double ymin,double ymax,std::map<std::string,std::string> options);
-
+  void set_interp(std::string interp);
+  
   void multiply_vector_scalar(std::vector<double> &v,double k);
   void multiply_table_vector(int Nrows,int Ncols,double* tab_input,double* vec_input,double* vec_output);
   void multiply_table_table(int Nrows_1,int Ncols_1,int N_cols_2,double* tab_input_1,double* tab_input_2,double* tab_output);

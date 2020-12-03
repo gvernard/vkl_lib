@@ -24,7 +24,8 @@ void RectGrid::common_constructor(int Nx,int Ny,double xmin,double xmax,double y
   for(std::map<std::string,std::string>::iterator it=options.begin();it!=options.end();it++){
     this->options[it->first] = it->second;
   }
-
+  this->set_interp(options["interp"]);
+  
   this->Nz = this->Nx*this->Ny;
   this->z  = (double*) calloc(this->Nx*this->Ny,sizeof(double));
 
@@ -44,6 +45,15 @@ void RectGrid::common_constructor(int Nx,int Ny,double xmin,double xmax,double y
   }
   this->bound_x[this->Nx] = xmax;
 }
+
+void RectGrid::set_interp(std::string interp){
+  if( interp == "bilinear" ){
+    this->interp2d = &RectGrid::interp2d_bilinear;
+  } else {
+    this->interp2d = &RectGrid::interp2d_bicubic;
+  }
+}
+
 
 RectGrid::RectGrid(const RectGrid& grid){
   this->common_constructor(grid.Nx,grid.Ny,grid.bound_x[0],grid.bound_x[grid.Nx],grid.bound_y[0],grid.bound_y[grid.Ny],grid.options);
@@ -109,7 +119,7 @@ RectGrid* RectGrid::embeddedNewGrid(int new_Nx,int new_Ny){
       for(int j=0;j<new_Nx;j++){
 	double x = new_grid->center_x[j];
 	double y = new_grid->center_y[i];
-	new_grid->z[i*new_grid->Nx+j] = this->interp2d(x,y);
+	new_grid->z[i*new_grid->Nx+j] = (this->*interp2d)(x,y);
       }
     }
   }
@@ -236,16 +246,6 @@ bool RectGrid::match_point_to_closest_16(double x,double y,int* i,int* j){
   i[14] = i0 + f4;
   i[15] = i0 + f4;  
   return true;
-}
-
-
-
-double RectGrid::interp2d(double x,double y){
-  if( this->options["interp"] == "bilinear" ){
-    return this->interp2d_bilinear(x,y);
-  } else {
-    return this->interp2d_bicubic(x,y);
-  }
 }
 
 double RectGrid::interp2d_bilinear(double x,double y){
