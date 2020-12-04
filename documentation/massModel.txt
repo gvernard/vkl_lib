@@ -1,0 +1,49 @@
+/*
+TO DO:
+
+TO CONSIDER:
+
+*/
+
+
+
+
+This class represents any lensing potential as a collection of individual lens mass models and an omni-present deflection potential due to external shear.
+
+
+BASE MASS MODEL
+
+Constructors: None
+
+Member functions (non-virtual):
+- setMassPars:
+- printMassPars:
+
+Member functions (virtual):
+- psi: calculates the lensing potential
+- defl: calculates the deflection angles (first derivatives of the potential)
+- kappa: calculates the convergence (second derivatives of psi)
+- gamma: calculates the shear magnitude and direction (second derivatives of psi)
+
+
+
+
+PERT
+
+This implements a perturbing field that is represented by a FixedSource, i.e. a rectangular grid (RectGrid) complemented with a regularization scheme.
+
+Constructors:
+- Create an abstract Pert object
+- Create a Pert object based on an ImagePlane
+- Read in a Pert object from a file. This is the only constructor that actually initializes the dpsi and its derivatives.
+
+Member functions (virtual):
+- defl: calculates the deflection angles which are the derivatives of the dpsi field, hence, it just interpolates the zx and zy of the grid.
+- psi: calculates the values of the dpsi field by interpolation the grid.
+- kappa: calculates kappa based on the second derivatives of the grid.
+- gamma: calculates gamma_mag and gamma_phi based on the second derivatives and the mixed derivative of the grid.
+
+Member functions (non-virtual):
+- replaceDpsi: replaces the values of dpsi (z of the grid) with the given ones, and calls updatePert.
+- addDpsi: adds the given Ddpsi values to the existing dpsi (z of the grid), and calls updatePert.
+- updatePert: updates all the derivatives.

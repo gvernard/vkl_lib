@@ -3,64 +3,94 @@
 
 #include <string>
 #include <vector>
-#include <cstdlib>
 #include <map>
 #include <iostream>
 
 #include "covKernels.hpp"
 #include "tableDefinition.hpp"
-
+#include "rectGrid.hpp"
 
 class BaseSourcePlane {
 public:
-  std::string type;                // adaptive or regular
+  std::string source_type;         // adaptive or regular
   int Sm;                          // total number of pixels
-  std::string reg;                 // name of the regularization scheme
   int eigenSparseMemoryAllocForH;  // estimate of the non-zero elements per row of the regularization matrix H
   BaseCovKernel* kernel;           // pointer to kernel class
-  mytable H;
+  std::map<std::string,mytable> H;
 
   BaseSourcePlane(){};
   BaseSourcePlane(const BaseSourcePlane& other){
-    type = other.type;
+    source_type = other.source_type;
     Sm   = other.Sm;
-    reg  = other.reg;
-    H.Ti = other.H.Ti;
-    H.Tj = other.H.Tj;
+    H    = other.H;
     eigenSparseMemoryAllocForH = other.eigenSparseMemoryAllocForH;
   };
   ~BaseSourcePlane(){
-    if( this->reg == "covariance_kernel" ){
+    if( this->find_reg("covariance_kernel") ){
       delete this->kernel;
     }
   };
   
   virtual BaseSourcePlane* clone() = 0;
-  virtual void constructH() = 0;
+  virtual void constructH(const std::string reg_scheme) = 0;
   virtual void outputSource(const std::string path) = 0;
   virtual void outputSourceErrors(double* errors,const std::string path) = 0;
+
+  void clear_H(std::string reg_scheme="all"){
+    if( reg_scheme == "all" ){
+      this->H.clear();
+    } else {
+      if( !this->find_reg(reg_scheme) ){
+	this->H.erase(reg_scheme);
+      }
+    }
+  }
+
+  bool find_reg(std::string reg_scheme){
+    if( this->H.find(reg_scheme) == this->H.end() ){
+      return false;
+    } else {
+      return true;
+    }
+  }
+
+  void print_reg(){
+    for(std::map<std::string,mytable>::iterator it=this->H.begin();it!=this->H.end();it++){
+      std::cout << it->first << std::endl;
+    }
+  }
 };
 
 
-class FixedSource: public BaseSourcePlane {
+class FixedSource: public BaseSourcePlane,public RectGrid {
 public:
-  RectGrid* grid;
-
-  FixedSource(int Nx,int Ny,double xmin,double xmax,double ymin,double ymax,std::string reg_scheme);
-  FixedSource(const FixedSource& source) : BaseSourcePlane(source) {};
+  FixedSource(int Nx,int Ny,double xmin,double xmax,double ymin,double ymax): RectGrid(Nx,Ny,xmin,xmax,ymin,ymax){
+    source_type = "fixed";
+    Sm   = this->Nz;
+  }
+  FixedSource(int Nx,int Ny,double xmin,double xmax,double ymin,double ymax,std::string filepath): RectGrid(Nx,Ny,xmin,xmax,ymin,ymax,filepath){
+    source_type = "fixed";
+    Sm   = this->Nz;
+  }
+  FixedSource(const FixedSource& other): BaseSourcePlane(other), RectGrid(other) {
+    source_type = "fixed";
+    Sm   = other.Sm;
+  };
   virtual FixedSource* clone(){
     return new FixedSource(*this);
   };
-  ~FixedSource(){
-    delete(grid);
-  }
+  ~FixedSource(){};
   
-  virtual void constructH();
+  virtual void constructH(std::string reg_scheme);
   virtual void outputSource(const std::string path);
   virtual void outputSourceErrors(double* errors,const std::string path){};
+
+private:
+  std::vector<mytriplet> getChunk(int i0,int j0,double hx,double hy,std::vector<int> ind_x,std::vector<double> coeff_x,std::vector<int> ind_y,std::vector<double> coeff_y);
+  void appendToH(mytable& H,std::vector<mytriplet>& chunk);
 };
 
-
+/*
 class AdaptiveSource: public BaseSourcePlane {
 public:
   AdaptiveSource(int Sm,std::string reg_scheme);
@@ -109,7 +139,7 @@ private:
 
   std::vector<int> mask_triangles;
 };
-
+*/
 
 
 class FactorySourcePlane{//This is a singleton class.
@@ -123,16 +153,14 @@ public:
   }
 
   BaseSourcePlane* createSourcePlane(std::map<std::string,std::string> source){
-    if( source["type"] == "fixed" ){
-      return new FixedSource(stoi(source["sx"]),stoi(source["sy"]),stof(source["size"]),source["reg_s"]);
-      //    } else if( source["type"] == "floating" ){
-      //      return new FloatingSource(stoi(source["sx"]),stoi(source["sy"]),stof(source["size"]),stof(source["x0"]),stof(source["y0"]),source["reg"]);
-    } else if( source["type"] == "adaptive" ){
-      if( source["mode"] == "random" ){
-	return new AdaptiveSource(stoi(source["sm"]),source["reg_s"]);
-      } else if( source["mode"] == "image" || source["mode"] == "grid" ){
-	return new AdaptiveSource(source["mode"],stoi(source["sm"]),stoi(source["spacing"]),source["reg_s"]);
-      }
+    if( source["source_type"] == "fixed" ){
+      return new FixedSource(stoi(source["Nx"]),stoi(source["Ny"]),stof(source["xmin"]),stof(source["xmax"]),stof(source["ymin"]),stof(source["xmax"]));
+    } else if( source["source_type"] == "adaptive" ){
+      //      if( source["mode"] == "random" ){
+      //	return new AdaptiveSource(stoi(source["sm"]),source["reg_s"]);
+      //      } else if( source["mode"] == "image" || source["mode"] == "grid" ){
+      //	return new AdaptiveSource(source["mode"],stoi(source["sm"]),stoi(source["spacing"]),source["reg_s"]);
+      //      }
     } else {
       return NULL;
     }

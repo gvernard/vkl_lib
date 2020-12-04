@@ -5,12 +5,10 @@
 #include <vector>
 #include <string>
 #include <map>
-#include <iostream>
 
 #include "nonLinearPars.hpp"
 #include "imagePlane.hpp"
 #include "sourcePlane.hpp"
-#include "tableDefinition.hpp"
 
 extern "C"{
   void fastelldefl_(double* x1,double* x2,double* b,double* g,double* q,double* s2,double* defl);
@@ -21,7 +19,7 @@ extern "C"{
 class BaseMassModel{
 public:
   int n;
-  std::string type;
+  std::string mass_type;
   std::map<std::string,double> mpars;
 
   BaseMassModel(){};
@@ -56,40 +54,26 @@ public:
   double psi(double xin,double yin){};
 };
 
-class Pert: public BaseMassModel{
+class Pert: public BaseMassModel,public FixedSource {
 public:
-  FixedSource* dpsi;
-  double* dpsi_dx;
-  double* dpsi_dy;
-  mytable Aint;
-  mytable Bdev;
-
-  Pert(int Ni,int Nj,double width,double height,std::string reg);
-  Pert(int Ni,int Nj,ImagePlane* image,std::string reg);
-  Pert(std::string filename,int Ni,int Nj,double width,double height,std::string reg);
-  Pert(FixedSource* new_dpsi);
-  ~Pert(){
-    delete(dpsi);
-    free(dpsi_dx);
-    free(dpsi_dy);
+  Pert(int Nx,int Ny,double xmin,double xmax,double ymin,double ymax): FixedSource(Nx,Ny,xmin,xmax,ymin,ymax){
+    this->mass_type = "pert";
   }
+  Pert(int Nx,int Ny,double xmin,double xmax,double ymin,double ymax,std::string filepath): FixedSource(Nx,Ny,xmin,xmax,ymin,ymax,filepath){
+    this->mass_type = "pert";
+    this->updatePert();
+  }
+  Pert(int Nx,int Ny,ImagePlane* image): FixedSource(Nx,Ny,image->grid->xmin,image->grid->xmax,image->grid->ymin,image->grid->ymax){
+    this->mass_type = "pert";
+  }
+  ~Pert(){};
   void defl(double xin,double yin,double& xout,double& yout);
-  double kappa(double xin,double yin){};
-  void gamma(double xin,double yin,double& gamma_mag,double& gamma_phi){};
+  double kappa(double xin,double yin);
+  void gamma(double xin,double yin,double& gamma_mag,double& gamma_phi);
   double psi(double xin,double yin);
   void replaceDpsi(double* new_dpsi);
   void addDpsi(double* corrections);
   void updatePert();
-  void createAint(ImagePlane* data);
-  void createBdev();
-  //  void tableDefl(int Nm,double* xdefl,double* ydefl);
-  void createCrosses(ImagePlane* image);
-  void getConvergence(ImagePlane* kappa);
-  
-private:
-  double di;
-  double dj;
-  void derivativeDirection(int q,int qmax,double den,int* rel_ind,double* coeff);
 };
 
 
@@ -131,7 +115,7 @@ public:
 
   BaseMassModel* createMassModel(const std::string &modelname,std::map<std::string,std::string> pars){
     if( modelname == "pert" ){
-      return new Pert(pars["filename"],std::stoi(pars["Ni"]),std::stoi(pars["Nj"]),std::stof(pars["width"]),std::stof(pars["height"]),pars["reg"]);
+      return new Pert(std::stoi(pars["Ni"]),std::stoi(pars["Nj"]),std::stof(pars["xmin"]),std::stof(pars["xmax"]),std::stof(pars["ymin"]),std::stof(pars["ymax"]),pars["filename"]);
     } else {
       return NULL;
     }

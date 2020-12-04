@@ -4,8 +4,6 @@
 #include <string>
 #include <vector>
 #include <map>
-#include <iostream>
-
 
 struct triplet{
   int i;    // index in the y direction
@@ -53,16 +51,17 @@ public:
   bool match_point_to_closest_4(double x,double y,int* i,int* j);
   bool match_point_to_closest_16(double x,double y,int* i,int* j);
 
-  double (RectGrid::*interp2d)(double x,double y);
-  double interp2d_bilinear(double x,double y);
-  double interp2d_bicubic(double x,double y);
+  double (RectGrid::*interp2d)(double x,double y,double* f0);
+  double interp2d_bilinear(double x,double y,double* f0);
+  double interp2d_bicubic(double x,double y,double* dummy);
+  double interp2d_bicubic_z_only(double x,double y,double* f0){};
   
   void calculate_zx();
   void calculate_zy();
   void calculate_zxy();
   void calculate_zxx();
   void calculate_zyy();
-    
+
 private:
   void common_constructor(int Nx,int Ny,double xmin,double xmax,double ymin,double ymax,std::map<std::string,std::string> options);
   
@@ -75,30 +74,6 @@ private:
   void calculate_derivative_2(int Nh,int Nv,double* h,double* zz,double* zout);
 
   double weighted_sum(int i0,int j0,std::vector<int> rel_i,std::vector<int> rel_j,std::vector<double> coeff,int z_Nx,double* zz);
-
-  // Finite difference coefficients and relative indices.
-  // 1st derivatives
-  static const std::vector<int>    derivative_1_forward_1_index;
-  static const std::vector<double> derivative_1_forward_1_coeff;
-  static const std::vector<int>    derivative_1_forward_2_index;
-  static const std::vector<double> derivative_1_forward_2_coeff;
-  static const std::vector<int>    derivative_1_backward_1_index;
-  static const std::vector<double> derivative_1_backward_1_coeff;
-  static const std::vector<int>    derivative_1_backward_2_index;
-  static const std::vector<double> derivative_1_backward_2_coeff;
-  static const std::vector<int>    derivative_1_central_2_index;
-  static const std::vector<double> derivative_1_central_2_coeff;
-  // 2nd derivatives
-  static const std::vector<int>    derivative_2_forward_1_index;
-  static const std::vector<double> derivative_2_forward_1_coeff;
-  static const std::vector<int>    derivative_2_forward_2_index;
-  static const std::vector<double> derivative_2_forward_2_coeff;
-  static const std::vector<int>    derivative_2_backward_1_index;
-  static const std::vector<double> derivative_2_backward_1_coeff;
-  static const std::vector<int>    derivative_2_backward_2_index;
-  static const std::vector<double> derivative_2_backward_2_coeff;
-  static const std::vector<int>    derivative_2_central_2_index;
-  static const std::vector<double> derivative_2_central_2_coeff;
 };
 
 #endif /* RECT_GRID_HPP */

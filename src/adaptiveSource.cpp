@@ -11,56 +11,10 @@
 
 //Derived class from BaseSourcePlane: AdaptiveSource
 //===============================================================================================================
-
-AdaptiveSource::AdaptiveSource(int a,std::string reg_scheme){
-  type    = "adaptive";
-  mode    = "random";
-  spacing = 0;
-  Sm      = a;
-  Si      = a;
-  Sj      = 0;
-  H.Ti    = Sm;
-  H.Tj    = Sm;
-
-  src  = (double*) calloc(Sm,sizeof(double));
-  x    = (double*) calloc(Sm,sizeof(double));
-  y    = (double*) calloc(Sm,sizeof(double));
-  s_dx = (double*) calloc(Sm,sizeof(double));
-  s_dy = (double*) calloc(Sm,sizeof(double));
-  lambda_out = (double*) calloc(Sm,sizeof(double));
-  mask_vertices = (int*) calloc(Sm,sizeof(int));
-
-  reg = reg_scheme;
-  if( reg == "identity"){
-    eigenSparseMemoryAllocForH = 1;
-  } else if( reg == "gradient" ){
-    eigenSparseMemoryAllocForH = 8;
-  } else if( reg == "curvature" ){
-    eigenSparseMemoryAllocForH = 8;
-  } else if( reg == "covariance_kernel" || reg == "covariance_kernel_in_identity_out" ){
-    // I need to call constructH() in order to set the number of non-zero entries per sparse matrix row (this number varies for a random covariance kernel).
-    // This happens at the initialization of the likelihood model (BaseLikelihoodModel->initializeAlgebra()) just before setting the algebra.
-    // So, do nothing here.
-  }
-}
-
-AdaptiveSource::AdaptiveSource(std::string m,int a,int b,std::string reg_scheme){
-  type    = "adaptive";
-  mode    = m;
-  spacing = b;
-  Sm      = a;// + 4;
-  Si      = a;// + 4;
-  Sj      = 0;
-  H.Ti    = Sm;
-  H.Tj    = Sm;
-
-  src  = (double*) calloc(Sm,sizeof(double));
-  x    = (double*) calloc(Sm,sizeof(double));
-  y    = (double*) calloc(Sm,sizeof(double));
-  s_dx = (double*) calloc(Sm,sizeof(double));
-  s_dy = (double*) calloc(Sm,sizeof(double));
-  lambda_out = (double*) calloc(Sm,sizeof(double));
-  mask_vertices = (int*) calloc(Sm,sizeof(int));
+AdaptiveSource::AdaptiveSource(std::string mode,int Sm,double* x,double* y,std::string reg_scheme){
+  type = "adaptive";
+  mode = mode;
+  Sm   = Sm;
 
   reg = reg_scheme;
   if( reg == "identity"){
@@ -78,20 +32,8 @@ AdaptiveSource::AdaptiveSource(std::string m,int a,int b,std::string reg_scheme)
 
 AdaptiveSource::AdaptiveSource(const AdaptiveSource& other) : BaseSourcePlane(other) {
   this->type = other.type;
-  this->mode = other.mode;
-  this->spacing = other.spacing;
-
   this->Sm = other.Sm;
-  this->Si = other.Si;
-  this->Sj = other.Sj;
 
-  this->src  = (double*) calloc(Sm,sizeof(double));
-  this->x    = (double*) calloc(Sm,sizeof(double));
-  this->y    = (double*) calloc(Sm,sizeof(double));
-  this->s_dx = (double*) calloc(Sm,sizeof(double));
-  this->s_dy = (double*) calloc(Sm,sizeof(double));
-  this->mask_vertices = (int*) calloc(Sm,sizeof(int));
-  this->lambda_out = (double*) calloc(Sm,sizeof(double));
   for(int i=0;i<this->Sm;i++){
     this->src[i]  = other.src[i];
     this->x[i]    = other.x[i];

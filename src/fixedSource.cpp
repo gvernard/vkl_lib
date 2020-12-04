@@ -1,270 +1,163 @@
 #include "sourcePlane.hpp"
-#include "tableDefinition.hpp"
 
-#include <vector>
-#include <string>
+#include <cmath>
+
+#include "constants.hpp"
+#include "fitsInterface.hpp"
 
 //Derived class from BaseSourcePlane: FixedSource
 //===============================================================================================================
-FixedSource::FixedSource(int Nx,int Ny,double xmin,double xmax,double ymin,double ymax,std::string reg_scheme){
-  type = "fixed";
-  reg  = reg_scheme;
-  grid = new RectGrid(Nx,Ny,xmin,xmax,ymin,ymax,filepath);
-  Sm   = grid->Nz;
-  H.Ti = Sm;
-  H.Tj = Sm;
-}
-
-FixedSource::FixedSource(const FixedSource& source){
-  type = "fixed";
-  reg  = source.reg;
-  grid = source.grid;
-  Sm   = source.Sm;
-}
 
 //virtual
-void FixedSource::constructH(){
-  std::vector<mytriplet> tmp;//need to make sure that the H triplet vector is a new one
+void FixedSource::constructH(std::string reg_scheme){
+  mytable newH;
+  newH.Ti = this->Sm;
+  newH.Tj = this->Sm;
 
-  if( this->reg == "identity" ){//---------------------------> zero order
+  if( reg_scheme == "identity" ){
+
     this->eigenSparseMemoryAllocForH = 1;
-    for(int i=0;i<this->H.Ti;i++){
-      tmp.push_back({i,i,1});
+    for(int i=0;i<newH.Ti;i++){
+      newH.tri.push_back({i,i,1});
     }
-  } else if ( this->reg == "gradient" ){//-------------------> first order
     
-    // This is a combination of Tikhonov and gradient regularization.
-    // Apart from the edge pixels that have a unit weight, there is also the central pixel of each row that has a unit weight.
-    // For gradient regularization only (of any accuracy) the weight of the central pixel is zero.
+  } else if ( reg_scheme == "gradient" ){
 
-    this->eigenSparseMemoryAllocForH = 8;
-    int Si = this->Si;
-    int Sj = this->Sj;
-    double dx = this->x[1] - this->x[0];
-    double dy = this->y[this->Sj] - this->y[0];
-    double ddx =  1.0/dx;
-    double ddy =  1.0/dy;
-
-    /*
-    //First pixel of first image row:  forward 1st derivative in X, forward 1st derivative in Y
-    tmp.push_back({  0,    0,      -ddx - ddy   });
-    tmp.push_back({  0,    1,             ddx   });
-    tmp.push_back({  0,    1*Sj,          ddy   });
-    //First row of image pixels: central 1st derivative in X, forward 1st derivative in Y
-    for(int j=1;j<Sj-1;j++){
-	tmp.push_back({  j,    j-1,           -0.5*ddx   });
-	tmp.push_back({  j,    j,                 -ddy   });
-	tmp.push_back({  j,    j+1,            0.5*ddx   });
-	tmp.push_back({  j,    1*Sj+j,             ddy   });
-    }
-    //Last pixel of first image row:  backward 1st derivative in X, forward 1st derivative in Y
-    tmp.push_back({  Sj-1,    Sj-2,             -ddx   });
-    tmp.push_back({  Sj-1,    Sj-1,        ddx - ddy   });
-    tmp.push_back({  Sj-1,    1*Sj+Sj-1,         ddy   });
-    */    
-    //Set all first-row pixels to unity
-    for(int j=0;j<Sj;j++){
-      tmp.push_back({         j,       j,               1.0   });
-    }
-
-
-    for(int i=1;i<Si-1;i++){
-      /*
-      //First pixel of each image row: forward 1st derivative in X-direction, central 1st derivative in Y
-      tmp.push_back({  i*Sj,    (i-1)*Sj,          -0.5*ddy   });
-      tmp.push_back({  i*Sj,        i*Sj,              -ddx   });
-      tmp.push_back({  i*Sj,      i*Sj+1,               ddx   });
-      tmp.push_back({  i*Sj,    (i+1)*Sj,           0.5*ddy   });
-      */
-      //First pixel of each image row: unity
-      tmp.push_back({  i*Sj,        i*Sj,               1.0   });
-
-      //central 2nd derivative in both X and Y directions
-      for(int j=1;j<Sj-1;j++){
-	tmp.push_back({  i*Sj+j,    (i-1)*Sj+j,    -0.5*ddy   });
-	tmp.push_back({  i*Sj+j,      i*Sj+j-1,    -0.5*ddx   });
-	tmp.push_back({  i*Sj+j,        i*Sj+j,     1.0       });
-	tmp.push_back({  i*Sj+j,      i*Sj+j+1,     0.5*ddx   });
-	tmp.push_back({  i*Sj+j,    (i+1)*Sj+j,     0.5*ddy   });
-      }
-      /*
-      //Last pixel of each image row: backward 1st derivative in X-direction, central 1st derivative in Y
-      tmp.push_back({  i*Sj+Sj-1,    (i-1)*Sj+Sj-1,          -0.5*ddy   });
-      tmp.push_back({  i*Sj+Sj-1,        i*Sj+Sj-2,              -ddx   });
-      tmp.push_back({  i*Sj+Sj-1,        i*Sj+Sj-1,               ddx   });
-      tmp.push_back({  i*Sj+Sj-1,    (i+1)*Sj+Sj-1,           0.5*ddy   });
-      */
-      //Last pixel of each image row: unity
-      tmp.push_back({  i*Sj+Sj-1,        i*Sj+Sj-1,     1.0   });
-    }
-
-    /*
-    //First pixel of last image row:  forward 1st derivative in X, backward 1st derivative in Y
-    tmp.push_back({  (Si-1)*Sj,     (Si-2)*Sj,         -ddy   });
-    tmp.push_back({  (Si-1)*Sj,     (Si-1)*Sj,   -ddx + ddy   });
-    tmp.push_back({  (Si-1)*Sj,   (Si-1)*Sj+1,          ddx   });
-    //Last row of image pixels:  central 1st derivative in X, backward 1st derivative in Y
-    for(int j=1;j<Sj-1;j++){
-      tmp.push_back({  (Si-1)*Sj+j,     (Si-2)*Sj+j,              -ddy   });
-      tmp.push_back({  (Si-1)*Sj+j,   (Si-1)*Sj+j-1,          -0.5*ddx   });
-      tmp.push_back({  (Si-1)*Sj+j,     (Si-1)*Sj+j,               ddy   });
-      tmp.push_back({  (Si-1)*Sj+j,   (Si-1)*Sj+j+1,           0.5*ddx   });
-    }
-    //Last pixel of last image row:  backward 1st derivative in X, backward 1st derivative in Y
-    tmp.push_back({  (Si-1)*Sj+Sj-1,   (Si-2)*Sj+Sj-1,        -ddy   });
-    tmp.push_back({  (Si-1)*Sj+Sj-1,   (Si-1)*Sj+Sj-2,        -ddx   });
-    tmp.push_back({  (Si-1)*Sj+Sj-1,   (Si-1)*Sj+Sj-1,   ddx + ddy   });
-    */    
-    //Set all last-row pixels to unity
-    for(int j=0;j<Sj;j++){
-      tmp.push_back({  (Si-1)*Sj+j,    (Si-1)*Sj+j,     1.0   });
-    }
-
-  } else if( this->reg == "curvature_full" ){//-------------------> second order
-
-    this->eigenSparseMemoryAllocForH = 8;
+    this->eigenSparseMemoryAllocForH = 3;
     int i0,j0;
-    double ddx2 = pow(this->grid->step_x,2);
-    double ddy2 = pow(this->grid->step_y,2);
+    double dx = this->step_x;
+    double dy = this->step_y;
+    std::vector<mytriplet> c;
+
+    for(i0=0;i0<this->Ny-1;i0++){
+      for(j0=0;j0<this->Nx-1;j0++){
+	c = this->getChunk(i0,j0,dx,dy,Constants::derivative_2_forward_1_index,Constants::derivative_2_forward_1_coeff,Constants::derivative_2_forward_1_index,Constants::derivative_2_forward_1_coeff);
+	appendToH(newH,c);
+      }
+      // Last element in x:
+      j0 = this->Nx-1;
+      c = this->getChunk(i0,j0,dx,dy,Constants::derivative_2_backward_1_index,Constants::derivative_2_backward_1_coeff,Constants::derivative_2_forward_1_index,Constants::derivative_2_forward_1_coeff);
+      appendToH(newH,c);
+    }
+
+    // Last row in y
+    i0 = this->Ny-1;
+    for(j0=0;j0<this->Nx-1;j0++){
+      c = this->getChunk(i0,j0,dx,dy,Constants::derivative_2_forward_1_index,Constants::derivative_2_forward_1_coeff,Constants::derivative_2_backward_1_index,Constants::derivative_2_backward_1_coeff);
+      appendToH(newH,c);
+    }
+    // Last element in x:
+    j0 = this->Nx-1;
+    c = this->getChunk(i0,j0,dx,dy,Constants::derivative_2_backward_1_index,Constants::derivative_2_backward_1_coeff,Constants::derivative_2_backward_1_index,Constants::derivative_2_backward_1_coeff);
+    appendToH(newH,c);
+    
+  } else if( reg_scheme == "curvature_full" ){
+
+    this->eigenSparseMemoryAllocForH = 5;
+    int i0,j0;
+    double dx2 = pow(this->step_x,2);
+    double dy2 = pow(this->step_y,2);
+    std::vector<mytriplet> c;
     
     // First Row
     i0 = 0;
     j0 = 0;
-    for(int k=0;k<RectGrid::derivative_2_forward_1_index.size();k++){
-      tmp.push_back({i0*this->grid->Nx+j0,i0*this->grid->Nx+(j0+RectGrid::derivative_2_forward_1_index[k]),RectGrid::derivative_2_forward_1_coeff[k]/ddx2});
-      tmp.push_back({i0*this->grid->Nx+j0,(i0+RectGrid::derivative_2_forward_1_index[k])*this->grid->Nx+j0,RectGrid::derivative_2_forward_1_coeff[k]/ddy2});
+    c = this->getChunk(i0,j0,dx2,dy2,Constants::derivative_2_forward_1_index,Constants::derivative_2_forward_1_coeff,Constants::derivative_2_forward_1_index,Constants::derivative_2_forward_1_coeff);
+    appendToH(newH,c);
+    for(j0=1;j0<this->Nx-1;j0++){
+      c = this->getChunk(i0,j0,dx2,dy2,Constants::derivative_2_central_2_index,Constants::derivative_2_central_2_coeff,Constants::derivative_2_forward_1_index,Constants::derivative_2_forward_1_coeff);
+      appendToH(newH,c);
     }
-
-    for(j0=1;j0<this->grid->Nx-1;j0++){
-      for(int k=0;k<RectGrid::derivative_2_central_2_index.size();k++){
-	tmp.push_back({i0*this->grid->Nx+j0,i0*this->grid->Nx+(j0+RectGrid::derivative_2_central_2_index[k]),RectGrid::derivative_2_central_2_coeff[k]/ddx2});
-      }
-      for(int k=0;k<RectGrid::derivative_2_forward_1_index.size();k++){
-	tmp.push_back({i0*this->grid->Nx+j0,(i0+RectGrid::derivative_2_forward_1_index[k])*this->grid->Nx+j0,RectGrid::derivative_2_forward_1_coeff[k]/ddy2});
-      }
-    }
-
-    j0 = this->grid->Nx-1;
-    for(int k=0;k<RectGrid::derivative_2_backward_1_index.size();k++){
-      tmp.push_back({i0*this->grid->Nx+j0,i0*this->grid->Nx+(j0+RectGrid::derivative_2_backward_1_index[k]),RectGrid::derivative_2_backward_1_coeff[k]/ddx2});
-    }
-    for(int k=0;k<RectGrid::derivative_2_forward_1_index.size();k++){
-      tmp.push_back({i0*this->grid->Nx+j0,(i0+RectGrid::derivative_2_forward_1_index[k])*this->grid->Nx+j0,RectGrid::derivative_2_forward_1_coeff[k]/ddy2});
-    }
+    j0 = this->Nx-1;
+    c = this->getChunk(i0,j0,dx2,dy2,Constants::derivative_2_backward_1_index,Constants::derivative_2_backward_1_coeff,Constants::derivative_2_forward_1_index,Constants::derivative_2_forward_1_coeff);
+    appendToH(newH,c);
     
     // Middle rows
-    for(i0=1;i0<this->grid->Ny-1;i0++){
+    for(i0=1;i0<this->Ny-1;i0++){
       j0 = 0;
-      for(int k=0;k<RectGrid::derivative_2_forward_1_index.size();k++){
-	tmp.push_back({i0*this->grid->Nx+j0,i0*this->grid->Nx+(j0+RectGrid::derivative_2_forward_1_index[k]),RectGrid::derivative_2_forward_1_coeff[k]/ddx2});
+      c = this->getChunk(i0,j0,dx2,dy2,Constants::derivative_2_forward_1_index,Constants::derivative_2_forward_1_coeff,Constants::derivative_2_central_2_index,Constants::derivative_2_central_2_coeff);
+      appendToH(newH,c);
+      for(int j0=1;j0<this->Nx-1;j0++){
+	c = this->getChunk(i0,j0,dx2,dy2,Constants::derivative_2_central_2_index,Constants::derivative_2_central_2_coeff,Constants::derivative_2_central_2_index,Constants::derivative_2_central_2_coeff);
+	appendToH(newH,c);
       }
-      for(int k=0;k<RectGrid::derivative_2_central_2_index.size();k++){
-	tmp.push_back({i0*this->grid->Nx+j0,(i0+RectGrid::derivative_2_central_2_index[k])*this->grid->Nx+j0,RectGrid::derivative_2_central_2_coeff[k]/ddy2});
-      }
-      
-      for(int j0=1;j0<this->grid->Nx-1;j0++){
-	for(int k=0;k<RectGrid::derivative_2_central_2_index.size();k++){
-	  tmp.push_back({i0*this->grid->Nx+j0,i0*this->grid->Nx+(j0+RectGrid::derivative_2_central_2_index[k]),RectGrid::derivative_2_central_2_coeff[k]/ddx2});
-	  tmp.push_back({i0*this->grid->Nx+j0,(i0+RectGrid::derivative_2_central_2_index[k])*this->grid->Nx+j0,RectGrid::derivative_2_central_2_coeff[k]/ddy2});
-	}
-      }
-      
-      j0 = this->grid->Nx-1;
-      for(int k=0;k<RectGrid::derivative_2_backward_1_index.size();k++){
-	tmp.push_back({i0*this->grid->Nx+j0,i0*this->grid->Nx+(j0+RectGrid::derivative_2_backward_1_index[k]),RectGrid::derivative_2_backward_1_coeff[k]/ddx2});
-      }
-      for(int k=0;k<RectGrid::derivative_2_central_2_index.size();k++){
-	tmp.push_back({i0*this->grid->Nx+j0,(i0+RectGrid::derivative_2_central_2_index[k])*this->grid->Nx+j0,RectGrid::derivative_2_central_2_coeff[k]/ddy2});
-      } 
+      j0 = this->Nx-1;
+      c = this->getChunk(i0,j0,dx2,dy2,Constants::derivative_2_backward_1_index,Constants::derivative_2_backward_1_coeff,Constants::derivative_2_central_2_index,Constants::derivative_2_central_2_coeff);
+      appendToH(newH,c);
     }
 
     // Last Row
-    i0 = this->grid->Ny-1;
+    i0 = this->Ny-1;
     j0 = 0;
-    for(int k=0;k<RectGrid::derivative_2_forward_1_index.size();k++){
-      tmp.push_back({i0*this->grid->Nx+j0,i0*this->grid->Nx+(j0+RectGrid::derivative_2_forward_1_index[k]),RectGrid::derivative_2_forward_1_coeff[k]/ddx2});
+    c = this->getChunk(i0,j0,dx2,dy2,Constants::derivative_2_forward_1_index,Constants::derivative_2_forward_1_coeff,Constants::derivative_2_backward_1_index,Constants::derivative_2_backward_1_coeff);
+    appendToH(newH,c);
+    for(j0=1;j0<this->Nx-1;j0++){
+      c = this->getChunk(i0,j0,dx2,dy2,Constants::derivative_2_central_2_index,Constants::derivative_2_central_2_coeff,Constants::derivative_2_backward_1_index,Constants::derivative_2_backward_1_coeff);
+      appendToH(newH,c);
     }
-    for(int k=0;k<RectGrid::derivative_2_backward_1_index.size();k++){
-      tmp.push_back({i0*this->grid->Nx+j0,(i0+RectGrid::derivative_2_backward_1_index[k])*this->grid->Nx+j0,RectGrid::derivative_2_backward_1_coeff[k]/ddy2});
-    }
-
-    for(j0=1;j0<this->grid->Nx-1;j0++){
-      for(int k=0;k<RectGrid::derivative_2_central_2_index.size();k++){
-	tmp.push_back({i0*this->grid->Nx+j0,i0*this->grid->Nx+(j0+RectGrid::derivative_2_central_2_index[k]),RectGrid::derivative_2_central_2_coeff[k]/ddx2});
-      }
-      for(int k=0;k<RectGrid::derivative_2_backward_1_index.size();k++){
-	tmp.push_back({i0*this->grid->Nx+j0,(i0+RectGrid::derivative_2_backward_1_index[k])*this->grid->Nx+j0,RectGrid::derivative_2_backward_1_coeff[k]/ddy2});
-      }
+    j0 = this->Nx-1;
+    for(int k=0;k<Constants::derivative_2_backward_1_index.size();k++){
+      c = this->getChunk(i0,j0,dx2,dy2,Constants::derivative_2_backward_1_index,Constants::derivative_2_backward_1_coeff,Constants::derivative_2_backward_1_index,Constants::derivative_2_backward_1_coeff);
+      appendToH(newH,c);
     }
 
-    j0 = this->grid->Nx-1;
-    for(int k=0;k<RectGrid::derivative_2_backward_1_index.size();k++){
-      tmp.push_back({i0*this->grid->Nx+j0,i0*this->grid->Nx+(j0+RectGrid::derivative_2_backward_1_index[k]),RectGrid::derivative_2_backward_1_coeff[k]/ddx2});
-      tmp.push_back({i0*this->grid->Nx+j0,(i0+RectGrid::derivative_2_backward_1_index[k])*this->grid->Nx+j0,RectGrid::derivative_2_backward_1_coeff[k]/ddy2});
-    }
+  } else if( reg_scheme == "curvature" ){
 
-  } else if( this->reg == "curvature" ){//-------------------> curvature with units at the borders matrix
-
-    this->eigenSparseMemoryAllocForH = 8;
+    this->eigenSparseMemoryAllocForH = 5;
     int i0,j0;
-    double ddx2 = pow(this->grid->step_x,2);
-    double ddy2 = pow(this->grid->step_y,2);
+    double dx2 = pow(this->step_x,2);
+    double dy2 = pow(this->step_y,2);
+    std::vector<mytriplet> c;
     
     // First Row
     i0 = 0;
-    for(j0=0;j0<this->grid->Nx;j0++){
-      tmp.push_back({i0*this->grid->Nx+j0,i0*this->grid->Nx+j0,1.0});
-    }
-    
+    for(j0=0;j0<this->Nx;j0++){
+      newH.tri.push_back({i0*this->Nx+j0,i0*this->Nx+j0,1.0});
+    }    
     // Middle rows
-    for(i0=1;i0<this->grid->Ny-1;i0++){
-      tmp.push_back({i0*this->grid->Nx,i0*this->grid->Nx,1.0});
-      
-      for(int j0=1;j0<this->grid->Nx-1;j0++){
-	for(int k=0;k<RectGrid::derivative_2_central_2_index.size();k++){
-	  tmp.push_back({i0*this->grid->Nx+j0,i0*this->grid->Nx+(j0+RectGrid::derivative_2_central_2_index[k]),RectGrid::derivative_2_central_2_coeff[k]/ddx2});
-	  tmp.push_back({i0*this->grid->Nx+j0,(i0+RectGrid::derivative_2_central_2_index[k])*this->grid->Nx+j0,RectGrid::derivative_2_central_2_coeff[k]/ddy2});
-	}
+    for(i0=1;i0<this->Ny-1;i0++){
+      newH.tri.push_back({i0*this->Nx,i0*this->Nx,1.0});      
+      for(int j0=1;j0<this->Nx-1;j0++){
+	c = this->getChunk(i0,j0,dx2,dy2,Constants::derivative_2_central_2_index,Constants::derivative_2_central_2_coeff,Constants::derivative_2_central_2_index,Constants::derivative_2_central_2_coeff);
+	appendToH(newH,c);
       }
-      
-      tmp.push_back({i0*this->grid->Nx+Nx-1,i0*this->grid->Nx+Nx-1,1.0});
+      newH.tri.push_back({i0*this->Nx+Nx-1,i0*this->Nx+Nx-1,1.0});
     }
-
     // Last Row
-    i0 = this->grid->Ny-1;
-    for(j0=0;j0<this->grid->Nx;j0++){
-      tmp.push_back({i0*this->grid->Nx+j0,i0*this->grid->Nx+j0,1.0});
+    i0 = this->Ny-1;
+    for(j0=0;j0<this->Nx;j0++){
+      newH.tri.push_back({i0*this->Nx+j0,i0*this->Nx+j0,1.0});
     }
     
-  } else if( this->reg == "covariance_kernel" ){//-------------------> covariance matrix
+  } else if( reg_scheme == "covariance_kernel" ){
     
     int* nonZeroRow = (int*) calloc(this->Sm,sizeof(int));
     int index1,index2;
     double x1,y1,x2,y2;
     double cov,r;
     // Match each grid point to every other point through this double loop
-    for(int i1=0;i1<this->grid->Ny-1;i1++){
-      for(int j1=0;j1<this->grid->Nx-1;j1++){
-	x1 = this->grid_center_x[j1];
-	y1 = this->grid_center_y[i1];
-	index1 = i1*this->grid->Nx+j1;
+    for(int i1=0;i1<this->Ny-1;i1++){
+      for(int j1=0;j1<this->Nx-1;j1++){
+	x1 = this->center_x[j1];
+	y1 = this->center_y[i1];
+	index1 = i1*this->Nx+j1;
 
 	cov = this->kernel->getCovarianceSelf();
 	if( cov > this->kernel->cmax ){
-	  tmp.push_back({index1,index1,cov});
+	  newH.tri.push_back({index1,index1,cov});
 	  nonZeroRow[index1]++;
 	}	
 
-	for(int i2=i1+1;i2<this->grid->Ny;i2++){
-	  for(int j2=j1+1;j2<this->grid->Nx;j2++){
-	    x2 = this->grid_center_x[j2];
-	    y2 = this->grid_center_y[i2];
-	    index2 = i2*this->grid->Nx+j2;
+	for(int i2=i1+1;i2<this->Ny;i2++){
+	  for(int j2=j1+1;j2<this->Nx;j2++){
+	    x2 = this->center_x[j2];
+	    y2 = this->center_y[i2];
+	    index2 = i2*this->Nx+j2;
 	    
 	    r = hypot(x1-x2,y1-y2);
 	    cov = this->kernel->getCovariance(r);
 	    if( cov > this->kernel->cmax ){
-	      tmp.push_back({index1,index2,cov});
+	      newH.tri.push_back({index1,index2,cov});
 	      nonZeroRow[index1]++;
 	    }
 	  }
@@ -284,13 +177,55 @@ void FixedSource::constructH(){
 
   }
 
-  this->H.tri.swap(tmp);
+  this->H.insert( std::pair<std::string,mytable> (reg_scheme,newH) );
 }
 
 //virtual
 void FixedSource::outputSource(const std::string fname){
   std::vector<std::string> key{"WIDTH","HEIGHT"};
-  std::vector<std::string> val{std::to_string(this->grid->width),std::to_string(this->grid->height)};
+  std::vector<std::string> val{std::to_string(this->width),std::to_string(this->height)};
   std::vector<std::string> txt{"width of the source in arcsec","height of the source in arcsec"};
-  FitsInterface::writeFits(this->Si,this->Sj,this->grid->z,key,val,txt,fname);
+  FitsInterface::writeFits(this->Nx,this->Ny,this->z,key,val,txt,fname);
+}
+
+
+//non-virtual private
+std::vector<mytriplet> FixedSource::getChunk(int i0,int j0,double hx,double hy,std::vector<int> ind_x,std::vector<double> coeff_x,std::vector<int> ind_y,std::vector<double> coeff_y){
+  std::map<int,mytriplet> triplet_map;
+  int ind;
+  int ind0 = i0*this->Nx + j0;
+  mytriplet tri;
+  
+  // first add the x coefficients
+  for(int k=0;k<ind_x.size();k++){
+    ind = i0*this->Nx+(j0+ind_x[k]);
+    tri = {ind0,ind,coeff_x[k]/hx};
+    triplet_map.insert(std::pair<int,mytriplet> (ind,tri));
+  }
+  // now add the y coefficients and check if the same i,j exists (the central pixel)
+  for(int k=0;k<ind_y.size();k++){
+    ind = (i0+ind_y[k])*this->Nx+j0;
+    tri = {ind0,ind,coeff_y[k]/hy};
+    if( triplet_map.find(ind) == triplet_map.end() ){
+      triplet_map.insert(std::pair<int,mytriplet> (ind,tri));
+    } else {
+      triplet_map[ind].v += coeff_y[k];
+    }
+  }
+  // check for zero entries
+  std::vector<mytriplet> out;
+  for(std::map<int,mytriplet>::iterator it=triplet_map.begin();it!=triplet_map.end();it++){
+    if( it->second.v != 0 ){
+      out.push_back(it->second);
+    }
+  } 
+  
+  return out;
+}
+
+//non-virtual private
+void appendToH(mytable& H,std::vector<mytriplet>& chunk){
+  for(int k=0;k<chunk.size();k++){
+    H.tri.push_back(chunk[k]);
+  }
 }

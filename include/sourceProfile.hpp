@@ -1,15 +1,12 @@
 #ifndef SOURCE_PROFILE_HPP
 #define SOURCE_PROFILE_HPP
 
-#include <cmath>
 #include <string>
 #include <map>
 
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/Polygon_2_algorithms.h>
 
-#include "nonLinearPars.hpp"
-#include "imagePlane.hpp"
 #include "rectGrid.hpp"
 
 

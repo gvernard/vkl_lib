@@ -1,14 +1,10 @@
 #define _USE_MATH_DEFINES
 
 #include "sourceProfile.hpp"
-#include "fitsInterface.hpp"
-#include "rectGrid.hpp"
 
-#include <iostream>
-#include <string>
-#include <map>
 #include <sstream>
 #include <fstream>
+#include <iostream>
 #include <cmath>
 
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
@@ -17,8 +13,9 @@
 #include <CGAL/Triangulation_face_base_with_info_2.h>
 #include <CGAL/Delaunay_triangulation_adaptation_traits_2.h>
 #include <CGAL/Delaunay_triangulation_adaptation_policies_2.h>
-
 #include <CGAL/Polygon_2_algorithms.h>
+
+#include "fitsInterface.hpp"
 
 typedef CGAL::Exact_predicates_inexact_constructions_kernel            K;
 typedef CGAL::Triangulation_vertex_base_with_info_2<unsigned int,K>    Vb;
@@ -218,7 +215,7 @@ void Analytic::outputProfile(std::string filename){
 //Derived class from BaseProfile: Custom
 //===============================================================================================================
 double Custom::value(double x,double y){
-  double val = (this->*interp2d)(x,y);
+  double val = (this->*interp2d)(x,y,this->z);
   return val;
 }
 

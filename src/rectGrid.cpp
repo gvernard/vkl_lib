@@ -1,8 +1,9 @@
 #include "rectGrid.hpp"
 #include "fitsInterface.hpp"
+#include "constants.hpp"
 
 #include <cmath>
-#include <algorithm>
+#include <algorithm> // for transform
 
 RectGrid::RectGrid(int Nx,int Ny,double xmin,double xmax,double ymin,double ymax,std::map<std::string,std::string> options){
   this->common_constructor(Nx,Ny,xmin,xmax,ymin,ymax,options);
@@ -124,7 +125,7 @@ RectGrid* RectGrid::embeddedNewGrid(int new_Nx,int new_Ny){
       for(int j=0;j<new_Nx;j++){
 	double x = new_grid->center_x[j];
 	double y = new_grid->center_y[i];
-	new_grid->z[i*new_grid->Nx+j] = (this->*interp2d)(x,y);
+	new_grid->z[i*new_grid->Nx+j] = (this->*interp2d)(x,y,this->z);
       }
     }
   }
@@ -253,7 +254,7 @@ bool RectGrid::match_point_to_closest_16(double x,double y,int* i,int* j){
   return true;
 }
 
-double RectGrid::interp2d_bilinear(double x,double y){
+double RectGrid::interp2d_bilinear(double x,double y,double* f0){
   //    a     b
   // 0-----------1
   // | w3  |  w2 |  c
@@ -275,12 +276,12 @@ double RectGrid::interp2d_bilinear(double x,double y){
 
   double z_interp = 0.0;
   for(int k=0;k<4;k++){
-    z_interp += w[k]*z[ii[k]*this->Nx+jj[k]];
+    z_interp += w[k]*f0[ii[k]*this->Nx+jj[k]];
   }
   return z_interp/(this->step_x*this->step_y);
 }
 
-double RectGrid::interp2d_bicubic(double x,double y){
+double RectGrid::interp2d_bicubic(double x,double y,double* dummy){
   if( this->zx == NULL ){
     this->calculate_zx();
   }
@@ -383,12 +384,12 @@ void RectGrid::calculate_derivative_1(int Nh,int Nv,double* h,double* zz,double*
   // 1st column
   if( this->options["dev1_accu"] == "1" ){
     rel_index_v = {0,0};
-    rel_index_h = this->derivative_1_forward_1_index;
-    coeff       = this->derivative_1_forward_1_coeff;
+    rel_index_h = Constants::derivative_1_forward_1_index;
+    coeff       = Constants::derivative_1_forward_1_coeff;
   } else {
     rel_index_v = {0,0,0};
-    rel_index_h = this->derivative_1_forward_2_index;
-    coeff       = this->derivative_1_forward_2_coeff;
+    rel_index_h = Constants::derivative_1_forward_2_index;
+    coeff       = Constants::derivative_1_forward_2_coeff;
   }
   h0 = 0;
   for(int v=0;v<Nv;v++){
@@ -398,12 +399,12 @@ void RectGrid::calculate_derivative_1(int Nh,int Nv,double* h,double* zz,double*
   // last column
   if( this->options["dev1_accu"] == "1" ){
     rel_index_v = {0,0};
-    rel_index_h = this->derivative_1_backward_1_index;
-    coeff       = this->derivative_1_backward_1_coeff;
+    rel_index_h = Constants::derivative_1_backward_1_index;
+    coeff       = Constants::derivative_1_backward_1_coeff;
   } else {
     rel_index_v = {0,0,0};
-    rel_index_h = this->derivative_1_backward_2_index;
-    coeff       = this->derivative_1_backward_2_coeff;
+    rel_index_h = Constants::derivative_1_backward_2_index;
+    coeff       = Constants::derivative_1_backward_2_coeff;
   }
   h0 = Nh-1;
   for(int v=0;v<Nv;v++){
@@ -412,8 +413,8 @@ void RectGrid::calculate_derivative_1(int Nh,int Nv,double* h,double* zz,double*
 
   // middle chunk
   rel_index_v = {0,0,0};
-  rel_index_h = this->derivative_1_central_2_index;
-  coeff       = this->derivative_1_central_2_coeff;
+  rel_index_h = Constants::derivative_1_central_2_index;
+  coeff       = Constants::derivative_1_central_2_coeff;
   for(int v=0;v<Nv;v++){
     for(int h=1;h<Nh-1;h++){
       zout[v*Nh+h] = this->weighted_sum(v,h,rel_index_v,rel_index_h,coeff,Nh,zz)/dh;
@@ -433,12 +434,12 @@ void RectGrid::calculate_derivative_2(int Nh,int Nv,double* h,double* zz,double*
   // 1st column
   if( this->options["dev2_accu"] == "1" ){
     rel_index_v = {0,0,0};
-    rel_index_h = this->derivative_2_forward_1_index;
-    coeff       = this->derivative_2_forward_1_coeff;
+    rel_index_h = Constants::derivative_2_forward_1_index;
+    coeff       = Constants::derivative_2_forward_1_coeff;
   } else {
     rel_index_v = {0,0,0,0};
-    rel_index_h = this->derivative_2_forward_2_index;
-    coeff       = this->derivative_2_forward_2_coeff;
+    rel_index_h = Constants::derivative_2_forward_2_index;
+    coeff       = Constants::derivative_2_forward_2_coeff;
   }
   h0 = 0;
   for(int v=0;v<Nv;v++){
@@ -448,12 +449,12 @@ void RectGrid::calculate_derivative_2(int Nh,int Nv,double* h,double* zz,double*
   // last column
   if( this->options["dev2_accu"] == "1" ){
     rel_index_v = {0,0,0};
-    rel_index_h = this->derivative_2_backward_1_index;
-    coeff       = this->derivative_2_backward_1_coeff;
+    rel_index_h = Constants::derivative_2_backward_1_index;
+    coeff       = Constants::derivative_2_backward_1_coeff;
   } else {
     rel_index_v = {0,0,0,0};
-    rel_index_h = this->derivative_2_backward_2_index;
-    coeff       = this->derivative_2_backward_2_coeff;
+    rel_index_h = Constants::derivative_2_backward_2_index;
+    coeff       = Constants::derivative_2_backward_2_coeff;
   }
   h0 = Nh-1;
   for(int v=0;v<Nv;v++){
@@ -462,8 +463,8 @@ void RectGrid::calculate_derivative_2(int Nh,int Nv,double* h,double* zz,double*
 
   // middle chunk
   rel_index_v = {0,0,0};
-  rel_index_h = this->derivative_2_central_2_index;
-  coeff       = this->derivative_2_central_2_coeff;
+  rel_index_h = Constants::derivative_2_central_2_index;
+  coeff       = Constants::derivative_2_central_2_coeff;
   for(int v=0;v<Nv;v++){
     for(int h=1;h<Nh-1;h++){
       zout[v*Nh+h] = this->weighted_sum(v,h,rel_index_v,rel_index_h,coeff,Nh,zz)/dh2;
@@ -514,26 +515,3 @@ double RectGrid::multiply_vector_vector(int N,double* vec_1,double* vec_2){
   return sum;
 }
 
-// Definition of static variables:
-// 2nd derivatives
-const std::vector<int>    RectGrid::derivative_1_forward_1_index({0,1});
-const std::vector<double> RectGrid::derivative_1_forward_1_coeff({-1,1});
-const std::vector<int>    RectGrid::derivative_1_forward_2_index({0,1,2});
-const std::vector<double> RectGrid::derivative_1_forward_2_coeff({-1.5,2.0,-0.5});
-const std::vector<int>    RectGrid::derivative_1_backward_1_index({-1,0});
-const std::vector<double> RectGrid::derivative_1_backward_1_coeff({-1,1});
-const std::vector<int>    RectGrid::derivative_1_backward_2_index({-2,-1,0});
-const std::vector<double> RectGrid::derivative_1_backward_2_coeff({0.5,-2,1.5});
-const std::vector<int>    RectGrid::derivative_1_central_2_index({-1,0,1});
-const std::vector<double> RectGrid::derivative_1_central_2_coeff({-0.5,0.0,0.5});
-// 2nd derivatives
-const std::vector<int>    RectGrid::derivative_2_forward_1_index({0,1,2});
-const std::vector<double> RectGrid::derivative_2_forward_1_coeff({1,-2,1});  
-const std::vector<int>    RectGrid::derivative_2_forward_2_index({0,1,2,3});
-const std::vector<double> RectGrid::derivative_2_forward_2_coeff({2,-5,4,-1});
-const std::vector<int>    RectGrid::derivative_2_backward_1_index({-2,-1,0});
-const std::vector<double> RectGrid::derivative_2_backward_1_coeff({1,-2,1});  
-const std::vector<int>    RectGrid::derivative_2_backward_2_index({-3,-2,-1,0});
-const std::vector<double> RectGrid::derivative_2_backward_2_coeff({-1,4,-5,2});
-const std::vector<int>    RectGrid::derivative_2_central_2_index({-1,0,1});
-const std::vector<double> RectGrid::derivative_2_central_2_coeff({1,-2,1});

@@ -24,20 +24,7 @@ ImagePlane::ImagePlane(const std::string filepath,int Nx,int Ny,double xmin,doub
   B.Ti = Nm;
   B.Tj = Nm;
 
-  defl_x  = (double*) calloc(Nm,sizeof(double));
-  defl_y  = (double*) calloc(Nm,sizeof(double));
   active  = (int*) calloc(Nm,sizeof(int));
-  cells   = (InterpolationCell**) calloc(Nm,sizeof(InterpolationCell*));
-  crosses = (Cross**) malloc(Nm*sizeof(Cross*));
-  dpsi_cells = (InterpolationCell**) calloc(Nm,sizeof(InterpolationCell*));
-  
-  for(int i=0;i<Ni;i++){
-    for(int j=0;j<Nj;j++){
-      cells[i*Nj+j] = NULL;
-      crosses[i*Nj+j] = NULL;
-      dpsi_cells[i*Nj+j] = NULL;
-    }
-  }
 }
 
 ImagePlane::ImagePlane(int Nx,int Ny,double xmin,double xmax,double ymin,double ymax){
@@ -53,20 +40,7 @@ ImagePlane::ImagePlane(int Nx,int Ny,double xmin,double xmax,double ymin,double 
   B.Ti = Nm;
   B.Tj = Nm;
 
-  defl_x  = (double*) calloc(Nm,sizeof(double));
-  defl_y  = (double*) calloc(Nm,sizeof(double));
   active  = (int*) calloc(Nm,sizeof(int));
-  cells   = (InterpolationCell**) calloc(Nm,sizeof(InterpolationCell*));
-  crosses = (Cross**) malloc(Nm*sizeof(Cross*));
-  dpsi_cells = (InterpolationCell**) calloc(Nm,sizeof(InterpolationCell*));
-
-  for(int i=0;i<Ni;i++){
-    for(int j=0;j<Nj;j++){
-      cells[i*Nj+j] = NULL;
-      crosses[i*Nj+j] = NULL;
-      dpsi_cells[i*Nj+j] = NULL;
-    }
-  }
 }
 
 ImagePlane::ImagePlane(const ImagePlane& image){
@@ -75,32 +49,12 @@ ImagePlane::ImagePlane(const ImagePlane& image){
   Nm = image.Nm;
   grid = image.grid;
   
-  defl_x  = (double*) calloc(Nm,sizeof(double));
-  defl_y  = (double*) calloc(Nm,sizeof(double));
   active  = (int*) calloc(Nm,sizeof(int));
-  cells   = (InterpolationCell**) calloc(Nm,sizeof(InterpolationCell*));
-  crosses = (Cross**) malloc(Nm*sizeof(Cross*));
-  dpsi_cells = (InterpolationCell**) calloc(Nm,sizeof(InterpolationCell*));
-  for(int i=0;i<Nm;i++){
-    cells[i] = NULL;
-    crosses[i] = NULL;
-    dpsi_cells[i] = NULL;
-  }
 }
 
 ImagePlane::~ImagePlane(){
   delete(grid);
-  free(defl_x);
-  free(defl_y);
   free(active);
-  for(int i=0;i<this->Nm;i++){
-    delete(cells[i]);
-    delete(crosses[i]);
-    delete(dpsi_cells[i]);
-  }
-  free(cells);
-  free(crosses);
-  free(dpsi_cells);
 }
 
 void ImagePlane::writeImage(const std::string filename){  
@@ -369,32 +323,6 @@ void ImagePlane::setCroppedLimitsOdd(int k,int Ncrop,int Nimg,int Nquad,int &Npr
     Npost  = Nquad;
     offset = 0;
   }
-}
-
-//void ImagePlane::printCross(int k,mytable Ds){
-void ImagePlane::printCross(int k){
-  double coeffs[12] = {0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0};
-  double dsx = 1.0;//Ds.tri[2*k].v;
-  double dsy = 1.0;//Ds.tri[2*k+1].v;
-
-  coeffs[0]  = this->crosses[k]->coeff_y[0]*dsy;
-  coeffs[1]  = this->crosses[k]->coeff_y[4]*dsy;
-  coeffs[2]  = this->crosses[k]->coeff_x[0]*dsx;
-  coeffs[3]  = this->crosses[k]->coeff_y[1]*dsy + this->crosses[k]->coeff_x[1]*dsx;
-  coeffs[4]  = this->crosses[k]->coeff_y[5]*dsy + this->crosses[k]->coeff_x[2]*dsx;
-  coeffs[5]  = this->crosses[k]->coeff_x[3]*dsx;
-  coeffs[6]  = this->crosses[k]->coeff_x[4]*dsx;
-  coeffs[7]  = this->crosses[k]->coeff_y[2]*dsy + this->crosses[k]->coeff_x[5]*dsx;
-  coeffs[8]  = this->crosses[k]->coeff_y[6]*dsy + this->crosses[k]->coeff_x[6]*dsx;
-  coeffs[9]  = this->crosses[k]->coeff_x[7]*dsx;
-  coeffs[10] = this->crosses[k]->coeff_y[3]*dsy;
-  coeffs[11] = this->crosses[k]->coeff_y[7]*dsy;
-
-  printf("\n");
-  printf("%10s %10.3f %10.3f %10s\n"," ",coeffs[0],coeffs[1]," ");
-  printf("%10.3f %10.3f %10.3f %10.3f\n",coeffs[2],coeffs[3],coeffs[4],coeffs[5]);
-  printf("%10.3f %10.3f %10.3f %10.3f\n",coeffs[6],coeffs[7],coeffs[8],coeffs[9]);
-  printf("%10s %10.3f %10.3f %10s\n"," ",coeffs[10],coeffs[11]," ");
 }
 
 void ImagePlane::lowerResRebinAdditive(ImagePlane* newImage){
