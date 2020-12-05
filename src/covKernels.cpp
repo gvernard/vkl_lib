@@ -1,89 +1,87 @@
 #include "covKernels.hpp"
-#include "nonLinearPars.hpp"
 
 #include <cmath>
 
-ModGaussKernel::ModGaussKernel(std::vector<Nlpar*> pars){
-  this->type = "modgauss";
-  this->setParameters(pars);
+
+//Abstract class: BaseCovKernel
+//===============================================================================================================
+BaseCovKernel::BaseCovKernel(const BaseCovKernel& other){
+  this->Npars = other.Npars;
+  this->cov_type = other.cov_type;
+  for(std::map<std::string,double>::iterator it=cpars.begin();it!=cpars.end();it++){
+    this->cpars[it->first] = it->second;
+  }
+};
+void BaseCovKernel::printCovPars(){
+  printf("      %10s\n",this->cov_type.c_str());
+  for(std::map<std::string,double>::iterator it=cpars.begin();it!=cpars.end();it++){
+    printf("%s: %10.5f\n",it->first.c_str(),it->second);
+  }
 }
-ModGaussKernel::ModGaussKernel(const ModGaussKernel& other){
-  this->sdev = other.sdev;
-}
-double ModGaussKernel::getCovariance(double r){
-  double cov = exp(-r/this->sdev);
-  return cov;
-}
-double ModGaussKernel::getCovarianceSelf(){
-  double cov = 1.0;
-  return cov;
-}
-void ModGaussKernel::setParameters(std::vector<Nlpar*> pars){
-  this->cmax = Nlpar::getValueByName("cmax",pars);
-  this->sdev = Nlpar::getValueByName("sdev",pars);
-}
-void ModGaussKernel::printParameters(){
-  printf("      %10s\n",this->type.c_str());
-  printf("sdev: %10.5f\n",this->sdev);
-  printf("cmax: %10.5f\n",this->cmax);
+bool BaseCovKernel::larger_than_cmax(double cov){
+  if( cov > cpars["cmax"] ){
+    return true;
+  } else {
+    return false;
+  }
 }
 
 
-GaussKernel::GaussKernel(std::vector<Nlpar*> pars){
-  this->type = "gauss";
-  this->setParameters(pars);
+//Derived class: ExpKernel
+//===============================================================================================================
+ExpKernel::ExpKernel(std::map<std::string,double> pars): BaseCovKernel(2,"exp"){
+  updateCovPars(pars);
 }
-GaussKernel::GaussKernel(const GaussKernel& other){
-  this->sdev = other.sdev;
+void ExpKernel::updateCovPars(std::map<std::string,double> pars){
+  for(std::map<std::string,double>::iterator it=pars.begin();it!=pars.end();it++){
+    cpars[it->first] = it->second;
+  }
+}
+double ExpKernel::getCovariance(double r){
+  return exp(-r/cpars["sdev"]);
+}
+double ExpKernel::getCovarianceSelf(){
+  return 1.0;
+}
+
+
+//Derived class: GaussKernel
+//===============================================================================================================
+GaussKernel::GaussKernel(std::map<std::string,double> pars): BaseCovKernel(2,"gauss"){
+  updateCovPars(pars);
+}
+void GaussKernel::updateCovPars(std::map<std::string,double> pars){
+  for(std::map<std::string,double>::iterator it=pars.begin();it!=pars.end();it++){
+    cpars[it->first] = it->second;
+  }
 }
 double GaussKernel::getCovariance(double r){
-  //  double cov = this->fac*exp(-r*r/(2*this->sdev*this->sdev));
-  double cov = exp(-r*r/(2*this->sdev*this->sdev));
-  return cov;
+  return exp(-r*r/(2*pow(cpars["sdev"],2)));
 }
 double GaussKernel::getCovarianceSelf(){
-  //  double cov = this->fac;
-  double cov = 1.1;
-  return cov;
-}
-void GaussKernel::setParameters(std::vector<Nlpar*> pars){
-  this->cmax = Nlpar::getValueByName("cmax",pars);
-  this->sdev = Nlpar::getValueByName("sdev",pars);
-  //  this->fac  = 1.0/(this->sdev*sqrt(2*M_PI));
-}
-void GaussKernel::printParameters(){
-  printf("      %10s\n",this->type.c_str());
-  printf("sdev: %10.5f\n",this->sdev);
-  printf("cmax: %10.5f\n",this->cmax);
+  return 1.1;
 }
 
 
-
-ExpGaussKernel::ExpGaussKernel(std::vector<Nlpar*> pars){
-  this->type  = "expgauss";
-  this->setParameters(pars);
+//Derived class: ExpGaussKernel
+//===============================================================================================================
+ExpGaussKernel::ExpGaussKernel(std::map<std::string,double> pars): BaseCovKernel(2,"exp_gauss"){
+  updateCovPars(pars);
 }
-ExpGaussKernel::ExpGaussKernel(const ExpGaussKernel& other){
-  this->sdev = other.sdev;
-  this->expo = other.expo;
+void ExpGaussKernel::updateCovPars(std::map<std::string,double> pars){
+  for(std::map<std::string,double>::iterator it=pars.begin();it!=pars.end();it++){
+    cpars[it->first] = it->second;
+  }
+  cpars["fac"] = 1.0/(cpars["sdev"]*sqrt(2*M_PI));
 }
 double ExpGaussKernel::getCovariance(double r){
-  double cov = this->fac*exp(-pow(r,this->expo)/(2*this->sdev*this->sdev));
+  double cov = cpars["fac"]*exp(-pow(r,cpars["expo"])/(2*pow(cpars["sdev"],2)));
   return cov;
 }
 double ExpGaussKernel::getCovarianceSelf(){
-  double cov = this->fac;
-  return cov;
+  return cpars["fac"];
 }
-void ExpGaussKernel::setParameters(std::vector<Nlpar*> pars){
-  this->cmax = Nlpar::getValueByName("cmax",pars);
-  this->expo = Nlpar::getValueByName("expo",pars);
-  this->sdev = Nlpar::getValueByName("sdev",pars);
-  this->fac  = 1.0/(this->sdev*sqrt(2*M_PI));
-}
-void ExpGaussKernel::printParameters(){
-  printf("      %10s\n",this->type.c_str());
-  printf("sdev: %10.5f\n",this->sdev);
-  printf("expo: %10.5f\n",this->expo);
-  printf("cmax: %10.5f\n",this->cmax);
-}
+
+
+//Derived class: INSERT YOUR CUSTOM COVARIANCE CLASS IMPLEMENTATION HERE
+//===============================================================================================================

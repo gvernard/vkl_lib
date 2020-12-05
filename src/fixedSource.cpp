@@ -167,7 +167,7 @@ void FixedSource::constructH(std::string reg_scheme){
 	index1 = i1*this->Nx+j1;
 
 	cov = this->kernel->getCovarianceSelf();
-	if( cov > this->kernel->cmax ){
+	if( this->kernel->larger_than_cmax(cov) ){
 	  newH.tri.push_back({index1,index1,cov});
 	  nonZeroRow[index1]++;
 	}	
@@ -180,7 +180,7 @@ void FixedSource::constructH(std::string reg_scheme){
 	    
 	    r = hypot(x1-x2,y1-y2);
 	    cov = this->kernel->getCovariance(r);
-	    if( cov > this->kernel->cmax ){
+	    if( this->kernel->larger_than_cmax(cov) ){
 	      newH.tri.push_back({index1,index2,cov});
 	      nonZeroRow[index1]++;
 	    }

@@ -2,78 +2,51 @@
 #define COVARIANCE_KERNELS_HPP
 
 #include <string>
-#include <vector>
-
-class Nlpar;
+#include <map> 
 
 class BaseCovKernel {
 public:
-  std::string type;
-  double cmax;
+  int Npars;
+  std::string cov_type;
+  std::map<std::string,double> cpars;
   
   BaseCovKernel(){};
-  BaseCovKernel(const BaseCovKernel& other){
-    this->type = other.type;
-    this->cmax = other.cmax;
-  };
+  BaseCovKernel(const BaseCovKernel& other);
   ~BaseCovKernel(){};
   
-  virtual BaseCovKernel* clone() = 0;
+  virtual void updateCovPars(std::map<std::string,double> pars) = 0;
   virtual double getCovariance(double r) = 0;
   virtual double getCovarianceSelf() = 0;
-  virtual void setParameters(std::vector<Nlpar*> pars) = 0;
-  virtual void printParameters() = 0;
+
+  void printCovPars();
+  bool larger_than_cmax(double cov);
+protected:
+  BaseCovKernel(int Npars,std::string cov_type): Npars(Npars), cov_type(cov_type){};
 };
 
 
 class GaussKernel: public BaseCovKernel {
 public:
-  double sdev;
-
-  GaussKernel(std::vector<Nlpar*> pars);
-  GaussKernel(const GaussKernel& other);
+  GaussKernel(std::map<std::string,double> pars);
   double getCovariance(double r);
   double getCovarianceSelf();
-  void setParameters(std::vector<Nlpar*> pars);
-  void printParameters();
-  GaussKernel* clone(){
-    return new GaussKernel(*this);
-  };
-private:
- double fac;
+  void updateCovPars(std::map<std::string,double> pars);
 };
 
-class ModGaussKernel: public BaseCovKernel {
+class ExpKernel: public BaseCovKernel {
 public:
-  double sdev;
-
-  ModGaussKernel(std::vector<Nlpar*> pars);
-  ModGaussKernel(const ModGaussKernel& other);
+  ExpKernel(std::map<std::string,double> pars);
   double getCovariance(double r);
   double getCovarianceSelf();
-  void setParameters(std::vector<Nlpar*> pars);
-  void printParameters();
-  ModGaussKernel* clone(){
-    return new ModGaussKernel(*this);
-  };
+  void updateCovPars(std::map<std::string,double> pars);
 };
 
 class ExpGaussKernel: public BaseCovKernel {
 public:
-  double expo;
-  double sdev;
-
-  ExpGaussKernel(std::vector<Nlpar*> pars);
-  ExpGaussKernel(const ExpGaussKernel& other);
+  ExpGaussKernel(std::map<std::string,double> pars);
   double getCovariance(double r);
   double getCovarianceSelf();
-  void setParameters(std::vector<Nlpar*> pars);
-  void printParameters();
-  ExpGaussKernel* clone(){
-    return new ExpGaussKernel(*this);
-  };
-private:
-  double fac;
+  void updateCovPars(std::map<std::string,double> pars);
 };
 
 class FactoryCovKernel {//This is a singleton class.
@@ -86,14 +59,15 @@ public:
     return &dum;
   }
 
-  BaseCovKernel* createCovKernel(const std::string kernel_type,std::vector<Nlpar*> pars){
-    if( kernel_type == "modgauss" ){
-      return new ModGaussKernel(pars);
+  BaseCovKernel* createCovKernel(const std::string kernel_type,std::map<std::string,double> pars){
+    if( kernel_type == "exp" ){
+      return new ExpKernel(pars);
     } else if( kernel_type == "gauss" ){
       return new GaussKernel(pars);
-    } else if( kernel_type == "expgauss" ){
+    } else if( kernel_type == "exp_gauss" ){
       return new ExpGaussKernel(pars);
     } else {
+      // throw exception
       return NULL;
     }
   }

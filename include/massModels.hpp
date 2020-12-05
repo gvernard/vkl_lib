@@ -6,16 +6,8 @@
 #include <string>
 #include <map>
 
-#include "nonLinearPars.hpp"
 #include "imagePlane.hpp"
 #include "sourcePlane.hpp"
-
-extern "C"{
-  void fastelldefl_(double* x1,double* x2,double* b,double* g,double* q,double* s2,double* defl);
-  void fastellmag_(double* x1,double* x2,double* b,double* g,double* q,double* s2,double* defl,double* jacob);
-  void ellipphi_(double* x1,double* x2,double* b,double* g,double* q,double* s2,double* phi);
-}
-
 
 class BaseMassModel{
 public:
@@ -43,9 +35,8 @@ class CollectionMassModels {
 public:
   std::vector<BaseMassModel*> models;
   
-  CollectionMassModels();
-  CollectionMassModels(std::vector<Nlpar*> nlpars);
-  ~CollectionMassModels();
+  CollectionMassModels(){};
+  ~CollectionMassModels(){};
   void all_defl(double xin,double yin,double& xout,double& yout);
   double all_kappa(double xin,double yin);
   void all_gamma(double xin,double yin,double& gamma_mag,double& gamma_phi);
