@@ -1,12 +1,33 @@
 #include "sourcePlane.hpp"
 
 #include <cmath>
+#include <iostream>
 
 #include "constants.hpp"
 #include "fitsInterface.hpp"
+#include "covKernels.hpp"
 
 //Derived class from BaseSourcePlane: FixedSource
 //===============================================================================================================
+FixedSource::FixedSource(int Nx,int Ny,double xmin,double xmax,double ymin,double ymax,BaseCovKernel* kernel): BaseSourcePlane(kernel),RectGrid(Nx,Ny,xmin,xmax,ymin,ymax) {
+  source_type = "fixed";
+  Sm   = this->Nz;
+}
+
+FixedSource::FixedSource(int Nx,int Ny,double xmin,double xmax,double ymin,double ymax,std::string filepath,BaseCovKernel* kernel): BaseSourcePlane(kernel),RectGrid(Nx,Ny,xmin,xmax,ymin,ymax,filepath){
+  source_type = "fixed";
+  Sm   = this->Nz;
+}
+
+FixedSource::FixedSource(const FixedSource& other): BaseSourcePlane(other), RectGrid(other){
+  source_type = "fixed";
+};
+
+
+//virtual
+FixedSource* FixedSource::clone(){
+  return new FixedSource(*this);
+};
 
 //virtual
 void FixedSource::constructH(std::string reg_scheme){
@@ -130,7 +151,10 @@ void FixedSource::constructH(std::string reg_scheme){
     }
     
   } else if( reg_scheme == "covariance_kernel" ){
-    
+
+    if( this->kernel == NULL ){
+      // throw an exception
+    }
     int* nonZeroRow = (int*) calloc(this->Sm,sizeof(int));
     int index1,index2;
     double x1,y1,x2,y2;

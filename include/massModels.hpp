@@ -27,12 +27,13 @@ public:
     mpars.clear();
   };
   
-  void setMassPars(std::vector<Nlpar*> nlpars);
-  void printMassPars();
   virtual void defl(double xin,double yin,double& xout,double& yout) = 0;
   virtual double kappa(double xin,double yin)   = 0;
   virtual void gamma(double xin,double yin,double& gamma_mag,double& gamma_phi) = 0;
   virtual double psi(double xin,double yin) = 0;
+
+  void setMassPars(std::vector<Nlpar*> nlpars);
+  void printMassPars();
 };
 
 
@@ -56,17 +57,11 @@ public:
 
 class Pert: public BaseMassModel,public FixedSource {
 public:
-  Pert(int Nx,int Ny,double xmin,double xmax,double ymin,double ymax): FixedSource(Nx,Ny,xmin,xmax,ymin,ymax){
-    this->mass_type = "pert";
-  }
-  Pert(int Nx,int Ny,double xmin,double xmax,double ymin,double ymax,std::string filepath): FixedSource(Nx,Ny,xmin,xmax,ymin,ymax,filepath){
-    this->mass_type = "pert";
-    this->updatePert();
-  }
-  Pert(int Nx,int Ny,ImagePlane* image): FixedSource(Nx,Ny,image->grid->xmin,image->grid->xmax,image->grid->ymin,image->grid->ymax){
-    this->mass_type = "pert";
-  }
+  Pert(int Nx,int Ny,double xmin,double xmax,double ymin,double ymax);
+  Pert(int Nx,int Ny,double xmin,double xmax,double ymin,double ymax,std::string filepath);
+  Pert(int Nx,int Ny,ImagePlane* image);
   ~Pert(){};
+  
   void defl(double xin,double yin,double& xout,double& yout);
   double kappa(double xin,double yin);
   void gamma(double xin,double yin,double& gamma_mag,double& gamma_phi);

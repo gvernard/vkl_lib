@@ -6,81 +6,44 @@
 #include <map>
 #include <iostream>
 
-#include "covKernels.hpp"
 #include "tableDefinition.hpp"
 #include "rectGrid.hpp"
+
+class BaseCovKernel;
 
 class BaseSourcePlane {
 public:
   std::string source_type;         // adaptive or regular
   int Sm;                          // total number of pixels
+  BaseCovKernel* kernel = NULL;    // pointer to kernel class
+  std::map<std::string,mytable> H; // list of regularization matrices H for different schemes
   int eigenSparseMemoryAllocForH;  // estimate of the non-zero elements per row of the regularization matrix H
-  BaseCovKernel* kernel;           // pointer to kernel class
-  std::map<std::string,mytable> H;
 
   BaseSourcePlane(){};
-  BaseSourcePlane(const BaseSourcePlane& other){
-    source_type = other.source_type;
-    Sm   = other.Sm;
-    H    = other.H;
-    eigenSparseMemoryAllocForH = other.eigenSparseMemoryAllocForH;
-  };
-  ~BaseSourcePlane(){
-    if( this->find_reg("covariance_kernel") ){
-      delete this->kernel;
-    }
-  };
+  BaseSourcePlane(BaseCovKernel* kernel);
+  BaseSourcePlane(const BaseSourcePlane& other);
+  ~BaseSourcePlane(){};
   
   virtual BaseSourcePlane* clone() = 0;
   virtual void constructH(const std::string reg_scheme) = 0;
   virtual void outputSource(const std::string path) = 0;
   virtual void outputSourceErrors(double* errors,const std::string path) = 0;
 
-  void clear_H(std::string reg_scheme="all"){
-    if( reg_scheme == "all" ){
-      this->H.clear();
-    } else {
-      if( !this->find_reg(reg_scheme) ){
-	this->H.erase(reg_scheme);
-      }
-    }
-  }
-
-  bool find_reg(std::string reg_scheme){
-    if( this->H.find(reg_scheme) == this->H.end() ){
-      return false;
-    } else {
-      return true;
-    }
-  }
-
-  void print_reg(){
-    for(std::map<std::string,mytable>::iterator it=this->H.begin();it!=this->H.end();it++){
-      std::cout << it->first << std::endl;
-    }
-  }
+  void set_kernel(BaseCovKernel* kernel);
+  void clear_H(std::string reg_scheme="all");
+  bool find_reg(std::string reg_scheme);
+  void print_reg();
 };
 
 
 class FixedSource: public BaseSourcePlane,public RectGrid {
 public:
-  FixedSource(int Nx,int Ny,double xmin,double xmax,double ymin,double ymax): RectGrid(Nx,Ny,xmin,xmax,ymin,ymax){
-    source_type = "fixed";
-    Sm   = this->Nz;
-  }
-  FixedSource(int Nx,int Ny,double xmin,double xmax,double ymin,double ymax,std::string filepath): RectGrid(Nx,Ny,xmin,xmax,ymin,ymax,filepath){
-    source_type = "fixed";
-    Sm   = this->Nz;
-  }
-  FixedSource(const FixedSource& other): BaseSourcePlane(other), RectGrid(other) {
-    source_type = "fixed";
-    Sm   = other.Sm;
-  };
-  virtual FixedSource* clone(){
-    return new FixedSource(*this);
-  };
+  FixedSource(int Nx,int Ny,double xmin,double xmax,double ymin,double ymax,BaseCovKernel* kernel=NULL);
+  FixedSource(int Nx,int Ny,double xmin,double xmax,double ymin,double ymax,std::string filepath,BaseCovKernel* kernel=NULL);
+  FixedSource(const FixedSource& other);
   ~FixedSource(){};
   
+  virtual FixedSource* clone();
   virtual void constructH(std::string reg_scheme);
   virtual void outputSource(const std::string path);
   virtual void outputSourceErrors(double* errors,const std::string path){};

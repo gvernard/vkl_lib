@@ -224,6 +224,20 @@ void Spemd::gamma(double xin,double yin,double& gamma_mag,double& gamma_phi){
 
 //Derived class from BaseMassModel: Pert (perturbations on a grid)
 //===============================================================================================================
+Pert::Pert(int Nx,int Ny,double xmin,double xmax,double ymin,double ymax): FixedSource(Nx,Ny,xmin,xmax,ymin,ymax){
+  this->mass_type = "pert";
+}
+
+Pert::Pert(int Nx,int Ny,double xmin,double xmax,double ymin,double ymax,std::string filepath): FixedSource(Nx,Ny,xmin,xmax,ymin,ymax,filepath){
+  this->mass_type = "pert";
+  this->updatePert();
+}
+
+Pert::Pert(int Nx,int Ny,ImagePlane* image): FixedSource(Nx,Ny,image->grid->xmin,image->grid->xmax,image->grid->ymin,image->grid->ymax){
+  this->mass_type = "pert";
+}
+
+
 void Pert::replaceDpsi(double* new_dpsi){
   for(int k=0;k<this->Sm;k++){
     this->z[k] = new_dpsi[k];
@@ -340,8 +354,8 @@ void CollectionMassModels::all_defl(ImagePlane* image){
       ax += dumx;
       ay += dumy;
     }
-    image->defl_x[j] = (1.0-this->mpars["gx"])*xin - this->mpars["gy"]*yin - ax;
-    image->defl_y[j] = (1.0+this->mpars["gx"])*yin - this->mpars["gy"]*xin - ay;
+    //    image->defl_x[j] = (1.0-this->mpars["gx"])*xin - this->mpars["gy"]*yin - ax;
+    //    image->defl_y[j] = (1.0+this->mpars["gx"])*yin - this->mpars["gy"]*xin - ay;
   }
 }
 

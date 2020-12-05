@@ -12,56 +12,49 @@
 //ImagePlane class implementation
 //============================================================================================
 ImagePlane::ImagePlane(const std::string filepath,int Nx,int Ny,double xmin,double xmax,double ymin,double ymax){
-  Ni   = Ny;
-  Nj   = Nx;
+  Nx   = Ny;
+  Ny   = Nx;
   grid = new RectGrid(Nx,Ny,xmin,xmax,ymin,ymax,filepath);
 
-  Nm   = Ni*Nj;
+  Nm   = Nx*Ny;
   S.Ti = Nm;
   S.Tj = Nm;
   C.Ti = Nm;
   C.Tj = Nm;
   B.Ti = Nm;
   B.Tj = Nm;
-
-  active  = (int*) calloc(Nm,sizeof(int));
 }
 
 ImagePlane::ImagePlane(int Nx,int Ny,double xmin,double xmax,double ymin,double ymax){
-  Ny   = Ny;
   Nx   = Nx;
+  Ny   = Ny;
   grid = new RectGrid(Nx,Ny,xmin,xmax,ymin,ymax);
 
-  Nm   = Ni*Nj;
+  Nm   = Nx*Ny;
   S.Ti = Nm;
   S.Tj = Nm;
   C.Ti = Nm;
   C.Tj = Nm;
   B.Ti = Nm;
   B.Tj = Nm;
-
-  active  = (int*) calloc(Nm,sizeof(int));
 }
 
 ImagePlane::ImagePlane(const ImagePlane& image){
-  Ni = image.Ni;
-  Nj = image.Nj;
+  Nx = image.Nx;
+  Ny = image.Ny;
   Nm = image.Nm;
   grid = image.grid;
-  
-  active  = (int*) calloc(Nm,sizeof(int));
 }
 
 ImagePlane::~ImagePlane(){
   delete(grid);
-  free(active);
 }
 
 void ImagePlane::writeImage(const std::string filename){  
   std::vector<std::string> key{"WIDTH","HEIGHT"};
   std::vector<std::string> val{std::to_string(this->grid->width),std::to_string(this->grid->height)};
   std::vector<std::string> txt{"width of the image in arcsec","height of the image in arcsec"};
-  FitsInterface::writeFits(this->Ni,this->Nj,this->grid->z,key,val,txt,filename);
+  FitsInterface::writeFits(this->Nx,this->Ny,this->grid->z,key,val,txt,filename);
 }
 
 void ImagePlane::readS(const std::string filepath){
@@ -75,7 +68,7 @@ void ImagePlane::readS(const std::string filepath){
   } else {
 
     double* fits = (double*) malloc(this->Nm*sizeof(double));
-    FitsInterface::readFits(this->Ni,this->Nj,fits,filepath);
+    FitsInterface::readFits(this->Nx,this->Ny,fits,filepath);
     this->Nmask = 0.0;
     for(int i=0;i<this->Nm;i++){
       if( fits[i] == 1 ){
@@ -123,8 +116,8 @@ void ImagePlane::readC(const std::string flag,const std::string filepath){
     } else if( extension == "fits" ){
 
       double* fits = (double*) malloc(this->Nm*sizeof(double));
-      FitsInterface::readFits(this->Ni,this->Nj,fits,filepath);
-      for(int i=0;i<this->Ni*this->Nj;i++){
+      FitsInterface::readFits(this->Nx,this->Ny,fits,filepath);
+      for(int i=0;i<this->Ny*this->Ny;i++){
 	this->C.tri.push_back({i,i,fits[i]});
 	//	  std::cout << 1./pow(contents[i*this->Nj+j],2) << std::endl;
       }
@@ -186,7 +179,7 @@ void ImagePlane::readB(const std::string filepath,int i,int j,int ci,int cj){
 
     // Read PSF from file
     double* fits = (double*) malloc(this->Nm*sizeof(double));
-    FitsInterface::readFits(this->Ni,this->Nj,fits,filepath);
+    FitsInterface::readFits(this->Nx,this->Ny,fits,filepath);
 
     // Report on the peak location of the PSF
     double vmax = fits[0];
@@ -268,11 +261,11 @@ void ImagePlane::readB(const std::string filepath,int i,int j,int ci,int cj){
     int Nleft,Nright,Ntop,Nbottom,crop_offsetx,crop_offsety,crop_offset;
     int ic,jc;
     double val;
-    for(int i=0;i<this->Ni;i++){
-      for(int j=0;j<this->Nj;j++){
+    for(int i=0;i<this->Ny;i++){
+      for(int j=0;j<this->Nx;j++){
 
-	(this->*(xfunc))(j,Ncropx,this->Nj,Nquadx,Nleft,Nright,crop_offsetx);
-	(this->*(yfunc))(i,Ncropy,this->Ni,Nquady,Ntop,Nbottom,crop_offsety);
+	(this->*(xfunc))(j,Ncropx,this->Nx,Nquadx,Nleft,Nright,crop_offsetx);
+	(this->*(yfunc))(i,Ncropy,this->Ny,Nquady,Ntop,Nbottom,crop_offsety);
 	crop_offset = crop_offsety*Ncropx + crop_offsetx;
 
 	for(int ii=i-Ntop;ii<i+Nbottom;ii++){
@@ -282,7 +275,7 @@ void ImagePlane::readB(const std::string filepath,int i,int j,int ci,int cj){
   
 	    val = blur[crop_offset + ic*Ncropx + jc];
 
-	    this->B.tri.push_back({i*this->Nj+j,     ii*this->Nj+jj,     val });
+	    this->B.tri.push_back({i*this->Nx+j,     ii*this->Nx+jj,     val });
 	  }
 	}
 
@@ -326,15 +319,15 @@ void ImagePlane::setCroppedLimitsOdd(int k,int Ncrop,int Nimg,int Nquad,int &Npr
 }
 
 void ImagePlane::lowerResRebinAdditive(ImagePlane* newImage){
-  double inf_dx = this->grid->width/this->Nj;
-  double inf_dy = this->grid->height/this->Ni;
-  double new_dx = newImage->grid->width/newImage->Nj;
-  double new_dy = newImage->grid->height/newImage->Ni;
-  for(int i=0;i<this->Ni;i++){
+  double inf_dx = this->grid->width/this->Nx;
+  double inf_dy = this->grid->height/this->Ny;
+  double new_dx = newImage->grid->width/newImage->Nx;
+  double new_dy = newImage->grid->height/newImage->Ny;
+  for(int i=0;i<this->Ny;i++){
     int ii = (int) floor(i*inf_dy/new_dy);
-    for(int j=0;j<this->Nj;j++){
+    for(int j=0;j<this->Nx;j++){
       int jj = (int) floor(j*inf_dx/new_dx);
-      newImage->grid->z[ii*newImage->Nj + jj] += this->grid->z[i*this->Nj + j];
+      newImage->grid->z[ii*newImage->Nx + jj] += this->grid->z[i*this->Nx + j];
     }
   }
 }
@@ -342,16 +335,16 @@ void ImagePlane::lowerResRebinAdditive(ImagePlane* newImage){
 void ImagePlane::lowerResRebinIntegrate(ImagePlane* newImage){
   // Integrating over equally sized elements is equivalent to getting the average
   int* counts = (int*) calloc(newImage->Nm,sizeof(int));
-  double inf_dx = this->grid->width/this->Nj;
-  double inf_dy = this->grid->height/this->Ni;
-  double new_dx = newImage->grid->width/newImage->Nj;
-  double new_dy = newImage->grid->height/newImage->Ni;
-  for(int i=0;i<this->Ni;i++){
+  double inf_dx = this->grid->width/this->Nx;
+  double inf_dy = this->grid->height/this->Ny;
+  double new_dx = newImage->grid->width/newImage->Nx;
+  double new_dy = newImage->grid->height/newImage->Ny;
+  for(int i=0;i<this->Ny;i++){
     int ii = (int) floor(i*inf_dy/new_dy);
-    for(int j=0;j<this->Nj;j++){
+    for(int j=0;j<this->Nx;j++){
       int jj = (int) floor(j*inf_dx/new_dx);
-      newImage->grid->z[ii*newImage->Nj + jj] += this->grid->z[i*this->Nj + j];
-      counts[ii*newImage->Nj + jj] += 1;
+      newImage->grid->z[ii*newImage->Nx + jj] += this->grid->z[i*this->Nx + j];
+      counts[ii*newImage->Nx + jj] += 1;
     }
   }
   for(int i=0;i<newImage->Nm;i++){

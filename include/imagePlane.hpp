@@ -36,21 +36,18 @@ public:
 
 class ImagePlane {
 public:
-  int Ni;                    //pixels in x direction
-  int Nj;                    //pixels in y direction
+  int Nx;                    //pixels in x direction
+  int Ny;                    //pixels in y direction
   int Nm;                    //total pixels in the image data
   RectGrid* grid;
   int Nmask;                 //pixels in the mask
-  double* defl_x;            //deflected x coordinates
-  double* defl_y;            //deflected y coordinates
-  int* active;               //active image pixels used in the construction of the adaptive grid
   mytable B;
   mytable C;
   mytable S;
   std::string noise_flag;
 
   ImagePlane(const std::string filepath,int Nx,int Ny,double xmin,double xmax,double ymin,double ymax);  // used to read images
-  ImagePlane(int Ni,int Nj,double xmin,double xmax,double ymin,double ymax);                             // used to create images
+  ImagePlane(int Nx,int Ny,double xmin,double xmax,double ymin,double ymax);                             // used to create images
   ImagePlane(const ImagePlane& image);
   ~ImagePlane();
 
@@ -58,8 +55,6 @@ public:
   void readB(const std::string filepath,int i,int j,int ci,int cj);
   void readC(const std::string flag,const std::string filepath);
   void readS(const std::string filepath);
-  //  void maskData(std::map<int,int> lookup,ImagePlane* masked);
-  void printCross(int k);
   void lowerResRebinAdditive(ImagePlane* newImage);
   void lowerResRebinIntegrate(ImagePlane* newImage);
 
