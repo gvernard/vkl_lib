@@ -12,20 +12,40 @@ This class represents any lensing potential as a collection of individual lens m
 
 
 BASE MASS MODEL
+- Npars: the maximum number of free parameters in each mass model
+- mass_type: the name of each derived mass model
+- mpars: A map<string,double> holding parameter names and values, pertinent only to parametric (analytical) mass models.
 
-Constructors: None
+Constructors:
+- A protected constructor to be called only by the derived classes, which initializes Npars and mass_type.
 
 Member functions (non-virtual):
-- setMassPars:
-- printMassPars:
+- printMassPars: print the mass parameters, pertinent only to analytical models, for Pert it prints nothing.
 
 Member functions (virtual):
+- updateMassPars: two versions of this function that updates the analytical parameters of the parametric models, or the dpsi values of the Pert model. The first version (analytical pars) takes some parameters as input, updates their values in mpars, and then checks if any of the new parameters requires custom treatment (scaling, change of units, etc). 
 - psi: calculates the lensing potential
 - defl: calculates the deflection angles (first derivatives of the potential)
 - kappa: calculates the convergence (second derivatives of psi)
 - gamma: calculates the shear magnitude and direction (second derivatives of psi)
 
 
+
+COLLECTION MASS MODELS
+In principle this is just a vector containing pointers to the different mass models, but I have added convenient functions that compute the kappa, deflections, psi, etc, due to the total lensing potential, i.e. the superposition of all the mass models.
+
+
+
+EXTERNAL SHEAR
+This class implements the external shear 'mass' model.
+
+
+SIE
+This class implements the Singular Isothermal Ellipsoid mass model
+- check_close_to_origin: if the coordinates x,y of the point to deflect are very close to zero, the deflection angles, etc, diverge, therefore I check and set them to very small, but non zero values.
+
+SPEMD
+This class implements the Softened Power law Elliptical Mass Density model from Barkana 1998.
 
 
 PERT
@@ -44,6 +64,8 @@ Member functions (virtual):
 - gamma: calculates gamma_mag and gamma_phi based on the second derivatives and the mixed derivative of the grid.
 
 Member functions (non-virtual):
-- replaceDpsi: replaces the values of dpsi (z of the grid) with the given ones, and calls updatePert.
-- addDpsi: adds the given Ddpsi values to the existing dpsi (z of the grid), and calls updatePert.
-- updatePert: updates all the derivatives.
+- updateDerivatives: updates all the derivatives.
+
+
+FACTORY PARAMETRIC MASS MODEL
+This is a factory class pertinent only to the parameter mass models.
