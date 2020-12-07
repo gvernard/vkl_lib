@@ -91,7 +91,7 @@ public:
   double kappa(double xin,double yin);
   void gamma(double xin,double yin,double& gamma_mag,double& gamma_phi);
   double psi(double xin,double yin);
-private:
+
   void updateDerivatives();
 };
 
@@ -109,11 +109,11 @@ public:
   // This creates only parametric models. Pert models have to be created manually beacuse they take different constructor options
   BaseMassModel* createParametricMassModel(const std::string modelname,std::map<std::string,double> pars){
     if( modelname == "sie" ){
-      new Sie(pars);
+      return new Sie(pars);
     } else if( modelname == "spemd" ){
-      new Spemd(pars);
+      return new Spemd(pars);
     } else if( modelname == "external_shear" ){
-      new ExternalShear(pars);
+      return new ExternalShear(pars);
     } else if( modelname == "pert" ){
       // throw exception
     } else {

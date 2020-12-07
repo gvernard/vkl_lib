@@ -5,6 +5,8 @@
 #include <cmath>
 #include <algorithm> // for transform
 
+#include <iostream>
+
 RectGrid::RectGrid(int Nx,int Ny,double xmin,double xmax,double ymin,double ymax,std::map<std::string,std::string> options){
   this->common_constructor(Nx,Ny,xmin,xmax,ymin,ymax,options);
 }
@@ -112,13 +114,11 @@ RectGrid::~RectGrid(){
 }
 
 RectGrid* RectGrid::embeddedNewGrid(int new_Nx,int new_Ny){
-  double new_xmin = this->center_x[0];
-  double new_xmax = this->center_x[this->Nx-1];
-  double new_ymin = this->center_y[0];
-  double new_ymax = this->center_y[this->Ny-1];
-
+  double new_xmin = this->bound_x[0];
+  double new_xmax = this->bound_x[this->Nx];
+  double new_ymin = this->bound_y[0];
+  double new_ymax = this->bound_y[this->Ny];
   RectGrid* new_grid = new RectGrid(new_Nx,new_Ny,new_xmin,new_xmax,new_ymin,new_ymax,this->options);
-
   if( this->z != NULL ){
     new_grid->z = (double*) calloc(new_grid->Nz,sizeof(double));
     for(int i=0;i<new_Ny;i++){
@@ -128,8 +128,47 @@ RectGrid* RectGrid::embeddedNewGrid(int new_Nx,int new_Ny){
 	new_grid->z[i*new_grid->Nx+j] = (this->*interp2d)(x,y,this->z);
       }
     }
+  }  
+  return new_grid;
+}
+
+RectGrid* RectGrid::embeddedNewGrid_additive(int new_Nx,int new_Ny){
+  double new_xmin = this->bound_x[0];
+  double new_xmax = this->bound_x[this->Nx];
+  double new_ymin = this->bound_y[0];
+  double new_ymax = this->bound_y[this->Ny];
+  RectGrid* new_grid = new RectGrid(new_Nx,new_Ny,new_xmin,new_xmax,new_ymin,new_ymax,this->options);  
+  for(int i=0;i<this->Ny;i++){
+    int ii = (int) floor(this->center_y[i]/new_grid->step_y);
+    for(int j=0;j<this->Nx;j++){
+      int jj = (int) floor(this->center_x[j]/new_grid->step_x);
+      new_grid->z[ii*new_grid->Nx + jj] += this->z[i*this->Nx + j];
+    }
   }
-  
+  return new_grid;
+}
+
+RectGrid* RectGrid::embeddedNewGrid_integrate(int new_Nx,int new_Ny){
+  // Integrating over equally sized elements is equivalent to getting the average
+  double new_xmin = this->bound_x[0];
+  double new_xmax = this->bound_x[this->Nx];
+  double new_ymin = this->bound_y[0];
+  double new_ymax = this->bound_y[this->Ny];
+  RectGrid* new_grid = new RectGrid(new_Nx,new_Ny,new_xmin,new_xmax,new_ymin,new_ymax,this->options);
+  new_grid->z = (double*) calloc(new_grid->Nz,sizeof(double));
+  int* counts = (int*) calloc(new_grid->Nz,sizeof(int));
+  int i0,j0;
+  for(int i=0;i<this->Ny;i++){
+    for(int j=0;j<this->Nx;j++){
+      new_grid->match_point_to_pixel(this->center_x[j],this->center_y[i],i0,j0);
+      new_grid->z[i0*new_grid->Nx + j0] += this->z[i*this->Nx + j];
+      counts[i0*new_grid->Nx + j0] += 1;
+    }
+  }
+  for(int i=0;i<new_grid->Nz;i++){
+    new_grid->z[i] = new_grid->z[i]/counts[i];
+  }
+  free(counts);
   return new_grid;
 }
 
@@ -150,8 +189,8 @@ bool RectGrid::point_between_pixel_centers(double x,double y,int boundary_size){
 }
 
 void RectGrid::match_point_to_pixel(double x,double y,int& i0,int& j0){
+  j0 = (int) floor( (x-this->xmin)/this->step_x );
   i0 = (int) floor( (y-this->ymin)/this->step_y );
-  j0 = (int) floor( (x-this->ymax)/this->step_x );
 }
 
 bool RectGrid::match_point_to_closest_4(double x,double y,int* i,int* j){

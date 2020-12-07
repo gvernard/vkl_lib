@@ -55,9 +55,6 @@ public:
   void readB(const std::string filepath,int i,int j,int ci,int cj);
   void readC(const std::string flag,const std::string filepath);
   void readS(const std::string filepath);
-  void lowerResRebinAdditive(ImagePlane* newImage);
-  void lowerResRebinIntegrate(ImagePlane* newImage);
-
   
 private:
   void setCroppedLimitsEven(int k,int Ncrop,int Nimg,int Nquad,int &Npre,int &Npost,int& offset);

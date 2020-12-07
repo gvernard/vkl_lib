@@ -248,7 +248,7 @@ std::vector<mytriplet> FixedSource::getChunk(int i0,int j0,double hx,double hy,s
 }
 
 //non-virtual private
-void appendToH(mytable& H,std::vector<mytriplet>& chunk){
+void FixedSource::appendToH(mytable& H,std::vector<mytriplet>& chunk){
   for(int k=0;k<chunk.size();k++){
     H.tri.push_back(chunk[k]);
   }

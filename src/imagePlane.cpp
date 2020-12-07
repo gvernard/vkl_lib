@@ -318,41 +318,6 @@ void ImagePlane::setCroppedLimitsOdd(int k,int Ncrop,int Nimg,int Nquad,int &Npr
   }
 }
 
-void ImagePlane::lowerResRebinAdditive(ImagePlane* newImage){
-  double inf_dx = this->grid->width/this->Nx;
-  double inf_dy = this->grid->height/this->Ny;
-  double new_dx = newImage->grid->width/newImage->Nx;
-  double new_dy = newImage->grid->height/newImage->Ny;
-  for(int i=0;i<this->Ny;i++){
-    int ii = (int) floor(i*inf_dy/new_dy);
-    for(int j=0;j<this->Nx;j++){
-      int jj = (int) floor(j*inf_dx/new_dx);
-      newImage->grid->z[ii*newImage->Nx + jj] += this->grid->z[i*this->Nx + j];
-    }
-  }
-}
-
-void ImagePlane::lowerResRebinIntegrate(ImagePlane* newImage){
-  // Integrating over equally sized elements is equivalent to getting the average
-  int* counts = (int*) calloc(newImage->Nm,sizeof(int));
-  double inf_dx = this->grid->width/this->Nx;
-  double inf_dy = this->grid->height/this->Ny;
-  double new_dx = newImage->grid->width/newImage->Nx;
-  double new_dy = newImage->grid->height/newImage->Ny;
-  for(int i=0;i<this->Ny;i++){
-    int ii = (int) floor(i*inf_dy/new_dy);
-    for(int j=0;j<this->Nx;j++){
-      int jj = (int) floor(j*inf_dx/new_dx);
-      newImage->grid->z[ii*newImage->Nx + jj] += this->grid->z[i*this->Nx + j];
-      counts[ii*newImage->Nx + jj] += 1;
-    }
-  }
-  for(int i=0;i<newImage->Nm;i++){
-    newImage->grid->z[i] = newImage->grid->z[i]/counts[i];
-  }
-  free(counts);
-}
-
 
 
 
