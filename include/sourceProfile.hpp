@@ -3,119 +3,95 @@
 
 #include <string>
 #include <map>
-
-#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
-#include <CGAL/Polygon_2_algorithms.h>
+#include <vector>
 
 #include "rectGrid.hpp"
 
-
-typedef CGAL::Exact_predicates_inexact_constructions_kernel K;
-typedef K::Point_2 Point;
+//#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
+//#include <CGAL/Polygon_2_algorithms.h>
+//typedef CGAL::Exact_predicates_inexact_constructions_kernel K;
+//typedef K::Point_2 Point;
 
 class BaseProfile {
 public:
-  std::string type;
-  int output_res;
-  
+  int Npars;
+  std::string profile_type;
+  std::map<std::string,double> ppars;
+
   BaseProfile(){};
   ~BaseProfile(){};
 
+  virtual void updateProfilePars(std::map<std::string,double> pars) = 0;
   virtual double value(double x,double y) = 0;
-  virtual void outputProfile(std::string filename) = 0;
-  virtual void scaleProfile() = 0;
-  virtual void inverseScaleProfile() = 0;
+  virtual bool in_range(double xin,double yin) = 0;
   
-  void profile(int Sj,int Si,double* sx,double* sy,double* s);
-  void writeProfile(std::string filename,double half_range);
+protected:
+  BaseProfile(int Npars,std::string profile_type): Npars(Npars), profile_type(profile_type){};
 };
 
 
-
-
-class BaseAnalyticFunction {
+class CollectionProfiles {
 public:
-  std::string type;
-  std::map<std::string,double> pars;
-
-  BaseAnalyticFunction(){};
-  ~BaseAnalyticFunction(){};
-
-  virtual double function_value(double x,double y) = 0;
-  virtual std::vector<double> extent() = 0;
+  std::vector<BaseProfile*> profiles;
+  
+  CollectionProfiles(){};
+  ~CollectionProfiles();
+  double all_values(double xin,double yin);
 };
 
 
-class Sersic: public BaseAnalyticFunction {
+
+class Sersic: public BaseProfile {
 public:
   Sersic(std::map<std::string,double> pars);
-  double function_value(double x,double y);
-  std::vector<double> extent();
-  void scaleProfile();
-  void inverseScaleProfile();
+  ~Sersic(){};
+  void updateProfilePars(std::map<std::string,double> pars);
+  double value(double x,double y);
+  bool in_range(double xin,double yin);
 private:
-  const double fac = 0.01745329251; // conversion from degrees to rad
+  void set_extent();
+  double p_xmin;
+  double p_xmax;
+  double p_ymin;
+  double p_ymax;  
+  double bn;
+  double cospa;
+  double sinpa;
 };
 
 
-class proGauss: public BaseAnalyticFunction { // name Gauss is taken in nonLinearPars.hpp so I use proGauss (pro for profile)
+class proGauss: public BaseProfile { // name Gauss is taken in nonLinearPars.hpp so I use proGauss (pro for profile)
 public:
   proGauss(std::map<std::string,double> pars);
-  double function_value(double x,double y);
-  std::vector<double> extent();
-  void scaleProfile();
-  void inverseScaleProfile(){};
-private:
-  const double fac = 0.01745329251; // conversion from degrees to rad
-};
-
-
-class FactoryAnalyticFunction {
-public:
-  FactoryAnalyticFunction(FactoryAnalyticFunction const&) = delete;
-  void operator=(FactoryAnalyticFunction const&) = delete;
-
-  static FactoryAnalyticFunction* getInstance(){
-    static FactoryAnalyticFunction dum;
-    return &dum;
-  }
-
-  BaseAnalyticFunction* createAnalyticFunction(const std::string &name,std::map<std::string,double> pars){
-    if( name == "sersic" ){
-      return new Sersic(pars);
-    } else if ( name == "gauss" ){
-      return new proGauss(pars);
-    } else {
-      return NULL;
-    }
-  }
-
-private:
-  FactoryAnalyticFunction(){};
-};
-
-
-class Analytic: public BaseProfile {
-public:
-  std::vector<BaseAnalyticFunction*> components;
-
-  Analytic(std::vector<std::string> names,std::vector<std::map<std::string,double> > all_pars);
-  ~Analytic(){
-    for(int i=0;i<this->components.size();i++){
-      delete(components[i]);
-    }
-  }
-
+  ~proGauss(){};
+  void updateProfilePars(std::map<std::string,double> pars);
   double value(double x,double y);
-  void outputProfile(std::string filename);
-  void scaleProfile(){};
-  void inverseScaleProfile(){};
+  bool in_range(double xin,double yin);
+private:
+  void set_extent();
+  double p_xmin;
+  double p_xmax;
+  double p_ymin;
+  double p_ymax;  
+  double sdev;
+  double cospa;
+  double sinpa;
 };
 
 
+class Custom: public BaseProfile,public RectGrid {
+public:
+  Custom(std::string filepath,int Nx,int Ny,double xmin,double xmax,double ymin,double ymax,double Mtot,std::string interp);
+  ~Custom(){};
+  void updateProfilePars(std::map<std::string,double> pars){};
+  double value(double x,double y);
+  bool in_range(double xin,double yin);
+private:
+  double Mtot;
+  void scaleProfile();
+};
 
-
-
+/*
 class myDelaunay: public BaseProfile {
 public:
   int N;
@@ -146,26 +122,53 @@ private:
   Point* convex_hull;
   int ch_size;
 };
+*/
 
-
-
-class Custom: public BaseProfile,public RectGrid {
+class FactoryProfile {
 public:
-  Custom(std::string filepath,int Nx,int Ny,double xmin,double xmax,double ymin,double ymax,double Mtot,std::string interp): BaseProfile(),RectGrid(Nx,Ny,xmin,xmax,ymin,ymax,filepath){
-    this->type = "custom";
-    this->Mtot = Mtot;
-    scaleProfile();
-    this->set_interp(interp);
+  FactoryProfile(FactoryProfile const&) = delete;
+  void operator=(FactoryProfile const&) = delete;
+
+  static FactoryProfile* getInstance(){
+    static FactoryProfile dum;
+    return &dum;
   }
-  ~Custom(){}
 
-  double Mtot;
+  BaseProfile* createProfile(const std::string profile_name,std::map<std::string,std::string> pars){
+    if( profile_name == "sersic" ){
+      std::map<std::string,double> tmp_pars;
+      for(std::map<std::string,std::string>::iterator it=pars.begin();it!=pars.end();it++){
+	tmp_pars.insert( std::pair<std::string,double>(it->first,std::stod(it->second)) );
+      }
+      return new Sersic(tmp_pars);
+    } else if( profile_name == "gauss" ){
+      std::map<std::string,double> tmp_pars;
+      for(std::map<std::string,std::string>::iterator it=pars.begin();it!=pars.end();it++){
+	tmp_pars.insert( std::pair<std::string,double>(it->first,std::stod(it->second)) );
+      }
+      return new proGauss(tmp_pars);
+    } else if( profile_name == "irregular" ){
 
-  double value(double x,double y);
-  void outputProfile(std::string filename);
-  void scaleProfile();
-  void inverseScaleProfile(){};
+    } else if( profile_name == "custom" ){
+      std::string filepath = pars["filepath"];
+      std::string interp   = pars["interp"];
+      int Nx      = std::stoi(pars["Nx"]);
+      int Ny      = std::stoi(pars["Ny"]);
+      double xmin = std::stod(pars["xmin"]);
+      double xmax = std::stod(pars["xmax"]);
+      double ymin = std::stod(pars["ymin"]);
+      double ymax = std::stod(pars["ymax"]);
+      double Mtot = std::stod(pars["Mtot"]);
+      return new Custom(filepath,Nx,Ny,xmin,xmax,ymin,ymax,Mtot,interp);
+    } else {
+      return NULL;
+    }
+  }
+
+private:
+  FactoryProfile(){};
 };
+
 
 
 #endif /* SOURCE_PROFILE_HPP */

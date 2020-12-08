@@ -7,6 +7,7 @@
 #include <iostream>
 #include <cmath>
 
+/*
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/Delaunay_triangulation_2.h>
 #include <CGAL/Triangulation_vertex_base_with_info_2.h>
@@ -15,222 +16,179 @@
 #include <CGAL/Delaunay_triangulation_adaptation_policies_2.h>
 #include <CGAL/Polygon_2_algorithms.h>
 
-#include "fitsInterface.hpp"
-
 typedef CGAL::Exact_predicates_inexact_constructions_kernel            K;
 typedef CGAL::Triangulation_vertex_base_with_info_2<unsigned int,K>    Vb;
 typedef CGAL::Triangulation_face_base_with_info_2<unsigned int,K>      Fb;
 typedef CGAL::Triangulation_data_structure_2<Vb,Fb>                    Tds;
 typedef CGAL::Delaunay_triangulation_2<K,Tds>                          Delaunay;
 typedef K::Point_2                                                     Point;
+*/
 
-//Abstract class: BaseProfile
+
+//Class: CollectionProfiles
 //===============================================================================================================
-void BaseProfile::profile(int Sj,int Si,double* sx,double* sy,double* s){
-  for(int i=0;i<Si;i++){
-    for(int j=0;j<Sj;j++){
-      s[i*Sj+j] += this->value(sx[i*Sj+j],sy[i*Sj+j]);
-    }
+CollectionProfiles::~CollectionProfiles(){
+  for(int i=0;i<this->profiles.size();i++){
+    delete(this->profiles[i]);
   }
 }
 
-void BaseProfile::writeProfile(std::string filename,double half_range){
-  // produces a square image centered at (0,0) on the source plane
-
-  // create grid of source brightness profile
-  double* array = (double*) malloc(output_res*output_res*sizeof(double));
-  double dpix = 2.0*half_range/output_res;
-  for(int i=0;i<output_res;i++){
-    for(int j=0;j<output_res;j++){
-      double x = j*dpix - half_range;
-      double y = i*dpix - half_range;
-      //array[(output_res-1-i)*output_res+j] = this->value(x,y);
-      array[i*output_res+j] = this->value(x,y);
-    }
+double CollectionProfiles::all_values(double xin,double yin){
+  double value = 0.0;
+  for(int i=0;i<this->profiles.size();i++){
+    value += this->profiles[i]->value(xin,yin);
   }
-
-  // Total brightness
-  double sum = 0.0;
-  for(long i=0;i<output_res*output_res;i++){
-    sum += array[i]*pow(2*half_range/output_res,2);
-  }
-  //  std::cout << sum << std::endl;
-  
-  //Write FITS:
-  std::vector<std::string> key{"WIDTH","HEIGHT"};
-  std::vector<std::string> val{std::to_string(2*half_range),std::to_string(2*half_range)};
-  std::vector<std::string> txt{"width of the image in arcsec","height of the image in arcsec"};
-  FitsInterface::writeFits(output_res,output_res,array,key,val,txt,filename);
-  free(array);
+  return value;
 }
-
-
 
 
 
 //Derived class from BaseAnalyticFunction: Sersic
 //===============================================================================================================
-Sersic::Sersic(std::map<std::string,double> pars){
-  this->type          = "sersic";
-  this->pars["n"]     = pars["n"];
-  this->pars["r_eff"] = pars["r_eff"];
-  this->pars["q"]     = pars["q"];
-  this->pars["x0"]    = pars["x0"];
-  this->pars["y0"]    = pars["y0"];
-  this->pars["pa"]    = pars["pa"];
+Sersic::Sersic(std::map<std::string,double> pars): BaseProfile(7,"sersic"){
+  updateProfilePars(pars);
+}
 
-  if( pars.find("M_tot") == pars.end() ){
-    // not found
-    this->pars["i_eff"] = pars["i_eff"];
-    this->inverseScaleProfile();    
+void Sersic::updateProfilePars(std::map<std::string,double> pars){
+  // First modify all parameter values that come from the outside
+  for(std::map<std::string,double>::iterator it=pars.begin();it!=pars.end();it++){
+    ppars[it->first] = it->second;
+  }
+  // Then convert any of the following accordingly, if they exist in the incoming pars
+  if( pars.find("n") != pars.end() ){
+    this->bn = 1.9992*this->ppars["n"] - 0.3271;//From Capaccioli 1989    
+  }
+  if( pars.find("pa") != pars.end() ){
+    ppars["pa"] = (pars["pa"] + 90.0) * 0.01745329251; // in rad
+    this->cospa = cos(ppars["pa"]);
+    this->sinpa = sin(ppars["pa"]);
+  }
+  if( pars.find("M_tot") != pars.end() ){
+    double fac = pow(ppars["r_eff"],2)*2*M_PI*ppars["n"]*exp(this->bn)*tgamma(2*ppars["n"])/pow(this->bn,2*ppars["n"]);
+    ppars["i_eff"] = ppars["q"]*pow(10.0,-0.4*ppars["M_tot"])/fac;
   } else {
-    // found
-    this->pars["M_tot"] = pars["M_tot"];
-    this->scaleProfile();
+    double fac = pow(ppars["r_eff"],2)*2*M_PI*ppars["n"]*exp(this->bn)*tgamma(2*ppars["n"])/pow(this->bn,2*ppars["n"]);
+    ppars["M_tot"] = -2.5*log10(fac*ppars["i_eff"]/ppars["q"]);
+  }
+  set_extent();
+}
+
+double Sersic::value(double x,double y){
+  if( in_range(x,y) ){
+    double u,v,r,fac2;
+    u =  (x - ppars["x0"])*this->cospa + (y - ppars["y0"])*this->sinpa;
+    v = -(x - ppars["x0"])*this->sinpa + (y - ppars["y0"])*this->cospa;
+    r = hypot(ppars["q"]*u,v);
+    fac2 = pow(r/ppars["r_eff"],1.0/ppars["n"]) - 1.0;
+    return ppars["i_eff"]*exp(-this->bn*fac2);
+  } else {
+    return 0.0;
   }
 }
 
-double Sersic::function_value(double x,double y){
-  double bn = 1.9992*this->pars["n"] - 0.3271;//From Capaccioli 1989
-  double u,v,r,fac2;
-  double cosphi = cos(this->pars["pa"]*this->fac);
-  double sinphi = sin(this->pars["pa"]*this->fac);
-  
-  u =   (x - this->pars["x0"])*cosphi + (y - this->pars["y0"])*sinphi;
-  v = - (x - this->pars["x0"])*sinphi + (y - this->pars["y0"])*cosphi;
-  r = sqrt(this->pars["q"]*this->pars["q"]*u*u + v*v);
-  fac2 = pow(r/this->pars["r_eff"],1.0/this->pars["n"]) - 1.0;
-  return this->pars["i_eff"]*exp(-bn*fac2);
+bool Sersic::in_range(double xin,double yin){
+  if( xin < this->p_xmin || this->p_xmax < xin || yin < this->p_ymin || this->p_ymax < yin ){
+    return false;
+  } else {
+    return true;
+  }
 }
 
-void Sersic::scaleProfile(){
-  double bn = 1.9992*this->pars["n"] - 0.3271;//From Capaccioli 1989
-  double den = pow(this->pars["r_eff"],2)*2*M_PI*this->pars["n"]*exp(bn)*tgamma(2*this->pars["n"])/pow(bn,2*this->pars["n"]);
-  this->pars["i_eff"] = this->pars["q"]*pow(10.0,-0.4*this->pars["M_tot"])/den;
-}
-
-void Sersic::inverseScaleProfile(){
-  double bn = 1.9992*this->pars["n"] - 0.3271;//From Capaccioli 1989
-  double fac = this->pars["i_eff"]*pow(this->pars["r_eff"],2)*2*M_PI*this->pars["n"]*exp(bn)*tgamma(2*this->pars["n"])/(this->pars["q"]*pow(bn,2*this->pars["n"]));
-  this->pars["M_tot"] = -2.5*log10(fac);
-}
-
-std::vector<double> Sersic::extent(){
-  double dx = 3*this->pars["_reff"]*cos(this->pars["pa"]*this->fac);
-  double xmin = this->pars["x0"] - dx;
-  double xmax = this->pars["x0"] + dx;
-  double dy = 3*this->pars["r_eff"]*sin(this->pars["pa"]*this->fac);
-  double ymin = this->pars["y0"] - dy;
-  double ymax = this->pars["y0"] + dy;
-  std::vector<double> ranges = {xmin,xmax,ymin,ymax};
-  return ranges;
+void Sersic::set_extent(){
+  double dx = 3*ppars["_reff"]*this->cospa;
+  this->p_xmin = ppars["x0"] - dx;
+  this->p_xmax = ppars["x0"] + dx;
+  double dy = 3*ppars["r_eff"]*this->sinpa;
+  this->p_ymin = ppars["y0"] - dy;
+  this->p_ymax = ppars["y0"] + dy;
 }
 
 //Derived class from BaseAnalyticFunction: Gauss
 //===============================================================================================================
-proGauss::proGauss(std::map<std::string,double> pars){
-  this->type          = "gauss";
-  this->pars["r_eff"] = pars["r_eff"];
-  this->pars["M_tot"] = pars["M_tot"];
-  this->pars["q"]     = pars["q"];
-  this->pars["x0"]    = pars["x0"];
-  this->pars["y0"]    = pars["y0"];
-  this->pars["pa"]    = pars["pa"];
-  this->scaleProfile();
+proGauss::proGauss(std::map<std::string,double> pars): BaseProfile(6,"gauss"){
+  updateProfilePars(pars);
 }
 
-double proGauss::function_value(double x,double y){
-  double u,v,r2;
-  double cosphi = cos(this->pars["pa"]*this->fac);
-  double sinphi = sin(this->pars["pa"]*this->fac);  
-  double sdev   = 2*this->pars["r_eff"]*this->pars["r_eff"];
-  
-  u =   (x - this->pars["x0"])*cosphi + (y - this->pars["y0"])*sinphi;
-  v = - (x - this->pars["x0"])*sinphi + (y - this->pars["y0"])*cosphi;
-  //    u =   x*cosphi + y*sinphi;
-  //    v = - x*sinphi + y*cosphi;
-  r2 = (this->pars["q"]*this->pars["q"]*u*u + v*v)/sdev;
-  //    return (this->ieff*exp(-r2)/(sqrt(sdev*3.14159)));
-  return this->pars["i_eff"]*exp(-r2);
+void proGauss::updateProfilePars(std::map<std::string,double> pars){
+  // First modify all parameter values that come from the outside
+  for(std::map<std::string,double>::iterator it=pars.begin();it!=pars.end();it++){
+    ppars[it->first] = it->second;
+  }
+  // Then convert any of the following accordingly, if they exist in the incoming pars
+  if( pars.find("pa") != pars.end() ){
+    ppars["pa"] = (pars["pa"] + 90.0) * 0.01745329251; // in rad
+    this->cospa = cos(ppars["pa"]);
+    this->sinpa = sin(ppars["pa"]);
+  }
+  if( pars.find("r_eff") != pars.end() ){
+    this->sdev = 2*ppars["r_eff"]*ppars["r_eff"];
+  }
+  if( pars.find("M_tot") != pars.end() ){
+    double fac = 2.0*M_PI*pow(ppars["r_eff"],2);
+    ppars["i_eff"] = ppars["q"]*pow(10.0,-0.4*ppars["M_tot"])/fac;
+  } else {
+    double fac = 2.0*M_PI*pow(ppars["r_eff"],2);
+    ppars["M_tot"] = -2.5*log10(fac*ppars["i_eff"]/ppars["q"]);
+  }
+  set_extent();
 }
 
-void proGauss::scaleProfile(){
-  double den = 2.0*M_PI*pow(this->pars["r_eff"],2);
-  this->pars["i_eff"] = pow(10.0,-0.4*this->pars["M_tot"])*this->pars["q"]/den;
-}
-
-std::vector<double> proGauss::extent(){
-  double dimg = 3.0*this->pars["r_eff"];
-  double xmin = this->pars["x0"] - dimg;
-  double xmax = this->pars["x0"] + dimg;
-  double ymin = this->pars["y0"] - dimg;
-  double ymax = this->pars["y0"] + dimg;
-  std::vector<double> ranges = {xmin,xmax,ymin,ymax};
-  return ranges;
-}
-
-
-
-
-
-
-
-//Derived class from BaseProfile: Analytic
-//===============================================================================================================
-Analytic::Analytic(std::vector<std::string> names,std::vector<std::map<std::string,double> > par_maps){
-  this->type = "analytic";
-  this->output_res = 500;
-  for(int i=0;i<names.size();i++){
-    BaseAnalyticFunction* function = FactoryAnalyticFunction::getInstance()->createAnalyticFunction(names[i],par_maps[i]);
-    this->components.push_back( function );
+double proGauss::value(double x,double y){
+  if( in_range(x,y) ){
+    double u,v,r2;
+    u =   (x - ppars["x0"])*this->cospa + (y - ppars["y0"])*sinpa;
+    v = - (x - ppars["x0"])*this->sinpa + (y - ppars["y0"])*cospa;
+    r2 = (ppars["q"]*ppars["q"]*u*u + v*v)/this->sdev;
+    return ppars["i_eff"]*exp(-r2);
+  } else {
+    return 0.0;
   }
 }
 
-double Analytic::value(double x,double y){
-  double value = 0.0;
-  for(int i=0;i<this->components.size();i++){
-    value += this->components[i]->function_value(x,y);
+bool proGauss::in_range(double xin,double yin){
+  if( xin < this->p_xmin || this->p_xmax < xin || yin < this->p_ymin || this->p_ymax < yin ){
+    return false;
+  } else {
+    return true;
   }
-  return value;
 }
 
-void Analytic::outputProfile(std::string filename){
-  double half_range = 0.0;
-  for(int i=0;i<this->components.size();i++){
-    std::vector<double> ranges = this->components[i]->extent();
-    for(int j=0;j<ranges.size();j++){
-      if( fabs(ranges[j]) > half_range ){
-	half_range = fabs(ranges[j]);
-      }
-    }
-  }
-  this->writeProfile(filename,half_range);
+void proGauss::set_extent(){
+  double dimg = 3.0*ppars["r_eff"];
+  this->p_xmin = ppars["x0"] - dimg;
+  this->p_xmax = ppars["x0"] + dimg;
+  this->p_ymin = ppars["y0"] - dimg;
+  this->p_ymax = ppars["y0"] + dimg;
 }
-
-
-
 
 
 
 //Derived class from BaseProfile: Custom
 //===============================================================================================================
+Custom::Custom(std::string filepath,int Nx,int Ny,double xmin,double xmax,double ymin,double ymax,double Mtot,std::string interp): BaseProfile(0,"custom"),RectGrid(Nx,Ny,xmin,xmax,ymin,ymax,filepath){
+  this->Mtot = Mtot;
+  this->set_interp(interp);
+  scaleProfile();
+}
+
 double Custom::value(double x,double y){
-  double val = (this->*interp2d)(x,y,this->z);
-  return val;
-}
-
-void Custom::outputProfile(std::string filename){
-  std::vector<double> ranges = {this->xmin,this->xmax,this->ymin,this->ymax};
-  double half_range = 0.0;
-  for(int i=0;i<ranges.size();i++){
-    if( fabs(ranges[i]) > half_range ){
-      half_range = fabs(ranges[i]);
-    }
+  if( in_range(x,y) ){
+    double val = (this->*interp2d)(x,y,this->z);
+    return val;
+  } else {
+    return 0.0;
   }
-  this->output_res = 2.0*half_range*this->Nx/this->width;
-  this->writeProfile(filename,half_range);
 }
 
+bool Custom::in_range(double xin,double yin){
+  if( xin < this->xmin || this->xmax < xin || yin < this->ymin || this->ymax < yin ){
+    return false;
+  } else {
+    return true;
+  }
+}
+
+// private
 void Custom::scaleProfile(){
   double sum = 0.0;
   double dS = this->step_x*this->step_y;
@@ -246,9 +204,7 @@ void Custom::scaleProfile(){
 
 
 
-
-
-
+/*
 //Derived class from BaseProfile: Delaunay
 //===============================================================================================================
 myDelaunay::myDelaunay(std::string filename){
@@ -311,15 +267,15 @@ myDelaunay::myDelaunay(std::string filename){
     index++;
   }
 
-  /*
-  FILE* fh = fopen("triangles.dat","w");
-  for(int q=0;q<this->triangles.size();q++){
-    fprintf(fh,"%10.5f%10.5f%10.5f",this->x[this->triangles[q].a],this->x[this->triangles[q].b],this->x[this->triangles[q].c]);
-    fprintf(fh,"%10.5f%10.5f%10.5f",this->y[this->triangles[q].a],this->y[this->triangles[q].b],this->y[this->triangles[q].c]);
-    fprintf(fh,"\n");
-  }
-  fclose(fh);
-  */
+
+  // FILE* fh = fopen("triangles.dat","w");
+  // for(int q=0;q<this->triangles.size();q++){
+  //   fprintf(fh,"%10.5f%10.5f%10.5f",this->x[this->triangles[q].a],this->x[this->triangles[q].b],this->x[this->triangles[q].c]);
+  //   fprintf(fh,"%10.5f%10.5f%10.5f",this->y[this->triangles[q].a],this->y[this->triangles[q].b],this->y[this->triangles[q].c]);
+  //   fprintf(fh,"\n");
+  // }
+  // fclose(fh);
+
 
   // Get the convex hull of the triangulation
   Delaunay::Vertex_circulator vc = triangulation.incident_vertices(triangulation.infinite_vertex());
@@ -437,3 +393,4 @@ double myDelaunay::sourceExtent(){
 
   return size;
 }
+*/

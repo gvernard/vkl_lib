@@ -36,7 +36,7 @@ public:
   std::vector<BaseMassModel*> models;
   
   CollectionMassModels(){};
-  ~CollectionMassModels(){};
+  ~CollectionMassModels();
   void all_defl(double xin,double yin,double& xout,double& yout);
   double all_kappa(double xin,double yin);
   void all_gamma(double xin,double yin,double& gamma_mag,double& gamma_phi);
@@ -96,26 +96,45 @@ public:
 };
 
 
-class FactoryParametricMassModel{//This is a singleton class.
+class FactoryParametricMassModel{
 public:
-  FactoryParametricMassModel(FactoryParametricMassModel const&) = delete;//Stop the compiler generating methods of copy the object.
+  FactoryParametricMassModel(FactoryParametricMassModel const&) = delete;
   void operator=(FactoryParametricMassModel const&) = delete;
 
   static FactoryParametricMassModel* getInstance(){
-    static FactoryParametricMassModel dum;//Guaranteed to be destroyed. Instantiated on first call.
+    static FactoryParametricMassModel dum;
     return &dum;
   }
 
   // This creates only parametric models. Pert models have to be created manually beacuse they take different constructor options
-  BaseMassModel* createParametricMassModel(const std::string modelname,std::map<std::string,double> pars){
-    if( modelname == "sie" ){
-      return new Sie(pars);
-    } else if( modelname == "spemd" ){
-      return new Spemd(pars);
-    } else if( modelname == "external_shear" ){
-      return new ExternalShear(pars);
-    } else if( modelname == "pert" ){
-      // throw exception
+  BaseMassModel* createParametricMassModel(const std::string model_name,std::map<std::string,std::string> pars){
+    if( model_name == "sie" ){
+      std::map<std::string,double> tmp_pars;
+      for(std::map<std::string,std::string>::iterator it=pars.begin();it!=pars.end();it++){
+	tmp_pars.insert( std::pair<std::string,double>(it->first,std::stod(it->second)) );
+      }
+      return new Sie(tmp_pars);
+    } else if( model_name == "spemd" ){
+      std::map<std::string,double> tmp_pars;
+      for(std::map<std::string,std::string>::iterator it=pars.begin();it!=pars.end();it++){
+	tmp_pars.insert( std::pair<std::string,double>(it->first,std::stod(it->second)) );
+      }
+      return new Spemd(tmp_pars);
+    } else if( model_name == "external_shear" ){
+      std::map<std::string,double> tmp_pars;
+      for(std::map<std::string,std::string>::iterator it=pars.begin();it!=pars.end();it++){
+	tmp_pars.insert( std::pair<std::string,double>(it->first,std::stod(it->second)) );
+      }
+      return new ExternalShear(tmp_pars);
+    } else if( model_name == "pert" ){
+      std::string filepath = pars["filepath"];
+      int Nx      = std::stoi(pars["Nx"]);
+      int Ny      = std::stoi(pars["Ny"]);
+      double xmin = std::stod(pars["xmin"]);
+      double xmax = std::stod(pars["xmax"]);
+      double ymin = std::stod(pars["ymin"]);
+      double ymax = std::stod(pars["ymax"]);
+      return new Pert(Nx,Ny,xmin,xmax,ymin,ymax,filepath);
     } else {
       return NULL;
     }

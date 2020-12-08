@@ -19,6 +19,12 @@ void BaseMassModel::printMassPars(){
 
 //Class: CollectionMassModels
 //===============================================================================================================
+CollectionMassModels::~CollectionMassModels(){
+  for(int i=0;i<this->models.size();i++){
+    delete(models[i]);
+  }
+}
+
 void CollectionMassModels::all_defl(double xin,double yin,double& xout,double& yout){
   double ax   = 0.0;
   double ay   = 0.0;
