@@ -8,7 +8,7 @@
 #include "imagePlane.hpp"
 #include "massModels.hpp"
 #include "sourcePlane.hpp"
-#include "sourceProfile.hpp"
+#include "lightProfile.hpp"
 #include "tableDefinition.hpp"
 
 #endif /* VKLLIB_HPP */

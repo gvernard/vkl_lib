@@ -1,5 +1,5 @@
 #include "jsonParsers.hpp"
-#include "sourceProfile.hpp"
+#include "lightProfile.hpp"
 #include "massModels.hpp"
 
 #include <map>

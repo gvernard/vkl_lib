@@ -1,6 +1,6 @@
 #define _USE_MATH_DEFINES
 
-#include "sourceProfile.hpp"
+#include "lightProfile.hpp"
 
 #include <sstream>
 #include <fstream>
