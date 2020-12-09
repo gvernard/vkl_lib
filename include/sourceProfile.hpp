@@ -23,7 +23,7 @@ public:
 
   virtual void updateProfilePars(std::map<std::string,double> pars) = 0;
   virtual double value(double x,double y) = 0;
-  virtual bool in_range(double xin,double yin) = 0;
+  virtual bool is_in_range(double xin,double yin) = 0;
   
 protected:
   BaseProfile(int Npars,std::string profile_type): Npars(Npars), profile_type(profile_type){};
@@ -48,7 +48,7 @@ public:
   ~Sersic(){};
   void updateProfilePars(std::map<std::string,double> pars);
   double value(double x,double y);
-  bool in_range(double xin,double yin);
+  bool is_in_range(double xin,double yin);
 private:
   void set_extent();
   double p_xmin;
@@ -67,7 +67,7 @@ public:
   ~Gauss(){};
   void updateProfilePars(std::map<std::string,double> pars);
   double value(double x,double y);
-  bool in_range(double xin,double yin);
+  bool is_in_range(double xin,double yin);
 private:
   void set_extent();
   double p_xmin;
@@ -86,7 +86,7 @@ public:
   ~Custom(){};
   void updateProfilePars(std::map<std::string,double> pars){};
   double value(double x,double y);
-  bool in_range(double xin,double yin);
+  bool is_in_range(double xin,double yin);
 private:
   double Mtot;
   void scaleProfile();

@@ -63,7 +63,7 @@ void Sersic::updateProfilePars(std::map<std::string,double> pars){
   }
   // Then convert any of the following accordingly, if they exist in the incoming pars
   if( pars.find("n") != pars.end() ){
-    this->bn = 1.9992*this->ppars["n"] - 0.3271;//From Capaccioli 1989    
+    this->bn = 1.9992*ppars["n"] - 0.3271;//From Capaccioli 1989    
   }
   if( pars.find("pa") != pars.end() ){
     ppars["pa"] = (pars["pa"] + 90.0) * 0.01745329251; // in rad
@@ -81,7 +81,7 @@ void Sersic::updateProfilePars(std::map<std::string,double> pars){
 }
 
 double Sersic::value(double x,double y){
-  if( in_range(x,y) ){
+  if( is_in_range(x,y) ){
     double u,v,r,fac2;
     u =  (x - ppars["x0"])*this->cospa + (y - ppars["y0"])*this->sinpa;
     v = -(x - ppars["x0"])*this->sinpa + (y - ppars["y0"])*this->cospa;
@@ -93,7 +93,7 @@ double Sersic::value(double x,double y){
   }
 }
 
-bool Sersic::in_range(double xin,double yin){
+bool Sersic::is_in_range(double xin,double yin){
   if( xin < this->p_xmin || this->p_xmax < xin || yin < this->p_ymin || this->p_ymax < yin ){
     return false;
   } else {
@@ -102,10 +102,10 @@ bool Sersic::in_range(double xin,double yin){
 }
 
 void Sersic::set_extent(){
-  double dx = 3*ppars["_reff"]*this->cospa;
+  double dx = fabs(3*ppars["r_eff"]*this->cospa);
   this->p_xmin = ppars["x0"] - dx;
   this->p_xmax = ppars["x0"] + dx;
-  double dy = 3*ppars["r_eff"]*this->sinpa;
+  double dy = fabs(3*ppars["r_eff"]*this->sinpa);
   this->p_ymin = ppars["y0"] - dy;
   this->p_ymax = ppars["y0"] + dy;
 }
@@ -141,7 +141,7 @@ void Gauss::updateProfilePars(std::map<std::string,double> pars){
 }
 
 double Gauss::value(double x,double y){
-  if( in_range(x,y) ){
+  if( is_in_range(x,y) ){
     double u,v,r2;
     u =   (x - ppars["x0"])*this->cospa + (y - ppars["y0"])*sinpa;
     v = - (x - ppars["x0"])*this->sinpa + (y - ppars["y0"])*cospa;
@@ -152,7 +152,7 @@ double Gauss::value(double x,double y){
   }
 }
 
-bool Gauss::in_range(double xin,double yin){
+bool Gauss::is_in_range(double xin,double yin){
   if( xin < this->p_xmin || this->p_xmax < xin || yin < this->p_ymin || this->p_ymax < yin ){
     return false;
   } else {
@@ -179,7 +179,7 @@ Custom::Custom(std::string filepath,int Nx,int Ny,double xmin,double xmax,double
 }
 
 double Custom::value(double x,double y){
-  if( in_range(x,y) ){
+  if( is_in_range(x,y) ){
     double val = (this->*interp2d)(x,y,this->z);
     return val;
   } else {
@@ -187,7 +187,7 @@ double Custom::value(double x,double y){
   }
 }
 
-bool Custom::in_range(double xin,double yin){
+bool Custom::is_in_range(double xin,double yin){
   if( xin < this->xmin || this->xmax < xin || yin < this->ymin || this->ymax < yin ){
     return false;
   } else {
