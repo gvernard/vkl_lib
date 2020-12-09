@@ -27,6 +27,13 @@ typedef K::Point_2                                                     Point;
 
 //Class: CollectionProfiles
 //===============================================================================================================
+CollectionProfiles::CollectionProfiles(const CollectionProfiles& other){
+  this->profiles.resize(other.profiles.size());
+  for(int i=0;i<other.profiles.size();i++){
+    this->profiles[i] = other.profiles[i];
+  }
+}
+
 CollectionProfiles::~CollectionProfiles(){
   for(int i=0;i<this->profiles.size();i++){
     delete(this->profiles[i]);
@@ -105,11 +112,11 @@ void Sersic::set_extent(){
 
 //Derived class from BaseAnalyticFunction: Gauss
 //===============================================================================================================
-proGauss::proGauss(std::map<std::string,double> pars): BaseProfile(6,"gauss"){
+Gauss::Gauss(std::map<std::string,double> pars): BaseProfile(6,"gauss"){
   updateProfilePars(pars);
 }
 
-void proGauss::updateProfilePars(std::map<std::string,double> pars){
+void Gauss::updateProfilePars(std::map<std::string,double> pars){
   // First modify all parameter values that come from the outside
   for(std::map<std::string,double>::iterator it=pars.begin();it!=pars.end();it++){
     ppars[it->first] = it->second;
@@ -133,7 +140,7 @@ void proGauss::updateProfilePars(std::map<std::string,double> pars){
   set_extent();
 }
 
-double proGauss::value(double x,double y){
+double Gauss::value(double x,double y){
   if( in_range(x,y) ){
     double u,v,r2;
     u =   (x - ppars["x0"])*this->cospa + (y - ppars["y0"])*sinpa;
@@ -145,7 +152,7 @@ double proGauss::value(double x,double y){
   }
 }
 
-bool proGauss::in_range(double xin,double yin){
+bool Gauss::in_range(double xin,double yin){
   if( xin < this->p_xmin || this->p_xmax < xin || yin < this->p_ymin || this->p_ymax < yin ){
     return false;
   } else {
@@ -153,7 +160,7 @@ bool proGauss::in_range(double xin,double yin){
   }
 }
 
-void proGauss::set_extent(){
+void Gauss::set_extent(){
   double dimg = 3.0*ppars["r_eff"];
   this->p_xmin = ppars["x0"] - dimg;
   this->p_xmax = ppars["x0"] + dimg;

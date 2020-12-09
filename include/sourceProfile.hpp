@@ -35,6 +35,7 @@ public:
   std::vector<BaseProfile*> profiles;
   
   CollectionProfiles(){};
+  CollectionProfiles(const CollectionProfiles& other);
   ~CollectionProfiles();
   double all_values(double xin,double yin);
 };
@@ -60,10 +61,10 @@ private:
 };
 
 
-class proGauss: public BaseProfile { // name Gauss is taken in nonLinearPars.hpp so I use proGauss (pro for profile)
+class Gauss: public BaseProfile {
 public:
-  proGauss(std::map<std::string,double> pars);
-  ~proGauss(){};
+  Gauss(std::map<std::string,double> pars);
+  ~Gauss(){};
   void updateProfilePars(std::map<std::string,double> pars);
   double value(double x,double y);
   bool in_range(double xin,double yin);
@@ -146,7 +147,7 @@ public:
       for(std::map<std::string,std::string>::iterator it=pars.begin();it!=pars.end();it++){
 	tmp_pars.insert( std::pair<std::string,double>(it->first,std::stod(it->second)) );
       }
-      return new proGauss(tmp_pars);
+      return new Gauss(tmp_pars);
     } else if( profile_name == "irregular" ){
 
     } else if( profile_name == "custom" ){

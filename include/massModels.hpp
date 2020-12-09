@@ -36,6 +36,7 @@ public:
   std::vector<BaseMassModel*> models;
   
   CollectionMassModels(){};
+  CollectionMassModels(const CollectionMassModels& other);
   ~CollectionMassModels();
   void all_defl(double xin,double yin,double& xout,double& yout);
   double all_kappa(double xin,double yin);
@@ -96,18 +97,18 @@ public:
 };
 
 
-class FactoryParametricMassModel{
+class FactoryMassModel{
 public:
-  FactoryParametricMassModel(FactoryParametricMassModel const&) = delete;
-  void operator=(FactoryParametricMassModel const&) = delete;
+  FactoryMassModel(FactoryMassModel const&) = delete;
+  void operator=(FactoryMassModel const&) = delete;
 
-  static FactoryParametricMassModel* getInstance(){
-    static FactoryParametricMassModel dum;
+  static FactoryMassModel* getInstance(){
+    static FactoryMassModel dum;
     return &dum;
   }
 
   // This creates only parametric models. Pert models have to be created manually beacuse they take different constructor options
-  BaseMassModel* createParametricMassModel(const std::string model_name,std::map<std::string,std::string> pars){
+  BaseMassModel* createMassModel(const std::string model_name,std::map<std::string,std::string> pars){
     if( model_name == "sie" ){
       std::map<std::string,double> tmp_pars;
       for(std::map<std::string,std::string>::iterator it=pars.begin();it!=pars.end();it++){
@@ -141,7 +142,7 @@ public:
   }
 
 private:
-  FactoryParametricMassModel(){};
+  FactoryMassModel(){};
 };
 
 #endif /* MASS_MODELS_HPP */

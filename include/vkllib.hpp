@@ -3,10 +3,10 @@
 
 #include "rectGrid.hpp"
 #include "fitsInterface.hpp"
+#include "jsonParsers.hpp"
 #include "covKernels.hpp"
 #include "imagePlane.hpp"
 #include "massModels.hpp"
-#include "nonLinearPars.hpp"
 #include "sourcePlane.hpp"
 #include "sourceProfile.hpp"
 #include "tableDefinition.hpp"

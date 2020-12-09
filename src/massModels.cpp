@@ -19,6 +19,13 @@ void BaseMassModel::printMassPars(){
 
 //Class: CollectionMassModels
 //===============================================================================================================
+CollectionMassModels::CollectionMassModels(const CollectionMassModels& other){
+  this->models.resize(other.models.size());
+  for(int i=0;i<other.models.size();i++){
+    this->models[i] = other.models[i];
+  }
+}
+
 CollectionMassModels::~CollectionMassModels(){
   for(int i=0;i<this->models.size();i++){
     delete(models[i]);
