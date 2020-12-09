@@ -1,11 +1,13 @@
 #define _USE_MATH_DEFINES
 
 #include "lightProfile.hpp"
+#include "fitsInterface.hpp"
+#include "rectGrid.hpp"
 
 #include <sstream>
 #include <fstream>
-#include <iostream>
 #include <cmath>
+#include <algorithm> // for minmax_element
 
 /*
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
@@ -46,6 +48,43 @@ double CollectionProfiles::all_values(double xin,double yin){
     value += this->profiles[i]->value(xin,yin);
   }
   return value;
+}
+
+void CollectionProfiles::write_all_profiles(const std::string filepath){
+  std::vector<double> vx;
+  std::vector<double> vy;
+  double xmin,xmax,ymin,ymax;
+  for(int i=0;i<this->profiles.size();i++){
+    this->profiles[i]->get_extent(xmin,xmax,ymin,ymax);
+    vx.push_back(xmin);
+    vx.push_back(xmax);
+    vy.push_back(ymin);
+    vy.push_back(ymax);
+  }
+
+  auto resultx = std::minmax_element(std::begin(vx),std::end(vx));
+  xmin = *resultx.first;
+  xmax = *resultx.second;
+  auto resulty = std::minmax_element(std::begin(vy),std::end(vy));
+  ymin = *resulty.first;
+  ymax = *resulty.second;
+
+  double w = xmax - xmin;
+  double h = ymax - ymin;
+  if( h>w ){
+    w = h;
+  }
+  
+  RectGrid grid(300,300,xmin,xmin+w,ymin,ymin+w);
+  for(int i=0;i<grid.Ny;i++){
+    for(int j=0;j<grid.Nx;j++){
+      grid.z[i*grid.Nx+j] = this->all_values(grid.center_x[j],grid.center_y[i]);
+    }
+  }
+  std::vector<std::string> keys{"xmin","xmax","ymin","ymax"};
+  std::vector<std::string> values{std::to_string(grid.xmin),std::to_string(grid.xmax),std::to_string(grid.ymin),std::to_string(grid.ymax)};
+  std::vector<std::string> descriptions{"left limit of the frame","right limit of the frame","bottom limit of the frame","top limit of the frame"};
+  FitsInterface::writeFits(grid.Nx,grid.Ny,grid.z,keys,values,descriptions,filepath);
 }
 
 
@@ -101,11 +140,18 @@ bool Sersic::is_in_range(double xin,double yin){
   }
 }
 
+void Sersic::get_extent(double& xmin,double& xmax,double& ymin,double& ymax){
+  xmin = this->p_xmin;
+  xmax = this->p_xmax;
+  ymin = this->p_ymin;
+  ymax = this->p_ymax;
+}
+
 void Sersic::set_extent(){
-  double dx = fabs(3*ppars["r_eff"]*this->cospa);
+  double dx = fabs(5*ppars["r_eff"]*this->cospa);
   this->p_xmin = ppars["x0"] - dx;
   this->p_xmax = ppars["x0"] + dx;
-  double dy = fabs(3*ppars["r_eff"]*this->sinpa);
+  double dy = fabs(5*ppars["r_eff"]*this->sinpa);
   this->p_ymin = ppars["y0"] - dy;
   this->p_ymax = ppars["y0"] + dy;
 }
@@ -160,8 +206,15 @@ bool Gauss::is_in_range(double xin,double yin){
   }
 }
 
+void Gauss::get_extent(double& xmin,double& xmax,double& ymin,double& ymax){
+  xmin = this->p_xmin;
+  xmax = this->p_xmax;
+  ymin = this->p_ymin;
+  ymax = this->p_ymax;
+}
+
 void Gauss::set_extent(){
-  double dimg = 3.0*ppars["r_eff"];
+  double dimg = 5.0*ppars["r_eff"];
   this->p_xmin = ppars["x0"] - dimg;
   this->p_xmax = ppars["x0"] + dimg;
   this->p_ymin = ppars["y0"] - dimg;
@@ -193,6 +246,13 @@ bool Custom::is_in_range(double xin,double yin){
   } else {
     return true;
   }
+}
+
+void Custom::get_extent(double& x_min,double& x_max,double& y_min,double& y_max){
+  x_min = this->xmin;
+  x_max = this->xmax;
+  y_min = this->ymin;
+  y_max = this->ymax;
 }
 
 // private

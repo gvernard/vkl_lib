@@ -24,6 +24,7 @@ public:
   virtual void updateProfilePars(std::map<std::string,double> pars) = 0;
   virtual double value(double x,double y) = 0;
   virtual bool is_in_range(double xin,double yin) = 0;
+  virtual void get_extent(double& xmin,double& xmax,double& ymin,double& ymax) = 0;
   
 protected:
   BaseProfile(int Npars,std::string profile_type): Npars(Npars), profile_type(profile_type){};
@@ -38,6 +39,7 @@ public:
   CollectionProfiles(const CollectionProfiles& other);
   ~CollectionProfiles();
   double all_values(double xin,double yin);
+  void write_all_profiles(const std::string filepath);
 };
 
 
@@ -49,6 +51,7 @@ public:
   void updateProfilePars(std::map<std::string,double> pars);
   double value(double x,double y);
   bool is_in_range(double xin,double yin);
+  void get_extent(double& xmin,double& xmax,double& ymin,double& ymax);
 private:
   void set_extent();
   double p_xmin;
@@ -68,6 +71,7 @@ public:
   void updateProfilePars(std::map<std::string,double> pars);
   double value(double x,double y);
   bool is_in_range(double xin,double yin);
+  void get_extent(double& xmin,double& xmax,double& ymin,double& ymax);
 private:
   void set_extent();
   double p_xmin;
@@ -87,6 +91,7 @@ public:
   void updateProfilePars(std::map<std::string,double> pars){};
   double value(double x,double y);
   bool is_in_range(double xin,double yin);
+  void get_extent(double& xmin,double& xmax,double& ymin,double& ymax);
 private:
   double Mtot;
   void scaleProfile();
