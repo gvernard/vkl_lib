@@ -66,6 +66,10 @@ AdaptiveSource::AdaptiveSource(const AdaptiveSource& other) : BaseSourcePlane(ot
   }
 }
 
+AdaptiveSource::AdaptiveSource* clone(){
+  return new AdaptiveSource(*this);
+};
+
 AdaptiveSource::~AdaptiveSource(){
   std::vector<a_triangle> ().swap(triangles);
 }

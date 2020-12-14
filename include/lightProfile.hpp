@@ -164,7 +164,7 @@ public:
       double xmax = std::stod(pars["xmax"]);
       double ymin = std::stod(pars["ymin"]);
       double ymax = std::stod(pars["ymax"]);
-      double Mtot = std::stod(pars["Mtot"]);
+      double Mtot = std::stod(pars["M_tot"]);
       return new Custom(filepath,Nx,Ny,xmin,xmax,ymin,ymax,Mtot,interp);
     } else {
       return NULL;

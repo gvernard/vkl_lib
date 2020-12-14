@@ -59,14 +59,12 @@ public:
   AdaptiveSource(int Sm,std::string reg_scheme);
   AdaptiveSource(std::string mode,int Sm,int spacing,std::string reg_scheme);
   AdaptiveSource(const AdaptiveSource& source);
-  virtual AdaptiveSource* clone(){
-    return new AdaptiveSource(*this);
-  };
   ~AdaptiveSource();
 
+  virtual AdaptiveSource* clone();
   virtual void constructH();
   virtual void outputSource(const std::string path);
-  virtual void outputSourceErrors(double* errors,const std::string path);
+  virtual void outputSourceErrors(double* errors,const std::string path){};
 
   void constructDerivatives();
   void createAdaGrid(ImagePlane* image,CollectionMassModels* mycollection);

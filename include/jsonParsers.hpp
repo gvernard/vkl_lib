@@ -8,8 +8,8 @@ class CollectionProfiles;
 
 class JsonParsers {
 public:
-  static CollectionMassModels parse_mass_model(const Json::Value mass_model);
-  static CollectionProfiles parse_profile(const Json::Value profile);
+  static CollectionMassModels parse_mass_model(const Json::Value mass_model,std::string prefix="");
+  static CollectionProfiles parse_profile(const Json::Value profile,std::string prefix="");
 };
 
 #endif /* JSON_PARSERS_HPP */

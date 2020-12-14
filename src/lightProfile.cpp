@@ -228,7 +228,7 @@ void Gauss::set_extent(){
 Custom::Custom(std::string filepath,int Nx,int Ny,double xmin,double xmax,double ymin,double ymax,double Mtot,std::string interp): BaseProfile(0,"custom"),RectGrid(Nx,Ny,xmin,xmax,ymin,ymax,filepath){
   this->Mtot = Mtot;
   this->set_interp(interp);
-  scaleProfile();
+  //  scaleProfile();
 }
 
 double Custom::value(double x,double y){

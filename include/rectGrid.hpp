@@ -5,12 +5,6 @@
 #include <vector>
 #include <map>
 
-struct triplet{
-  int i;    // index in the y direction
-  int j;    // index in the x direction
-  double v; // value
-};
-
 class RectGrid{
 public:
   int Nx;
@@ -53,9 +47,9 @@ public:
   bool match_point_to_closest_16(double x,double y,int* i,int* j);
 
   double (RectGrid::*interp2d)(double x,double y,double* f0);
+  double interp2d_nearest(double x,double y,double* f0);
   double interp2d_bilinear(double x,double y,double* f0);
   double interp2d_bicubic(double x,double y,double* dummy);
-  double interp2d_bicubic_z_only(double x,double y,double* f0){};
   
   void calculate_zx();
   void calculate_zy();

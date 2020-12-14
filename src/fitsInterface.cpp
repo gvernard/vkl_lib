@@ -21,7 +21,8 @@ void FitsInterface::readFits(int Nx,int Ny,double* z,const std::string filepath)
   //convert FITS standard (bottom to top) to the one used in this code (top to bottom)
   for(int i=0;i<Ny;i++){
     for(int j=0;j<Nx;j++){
-      z[i*Nx+j] = tmp[(Ny-i-1)*Nx+j];
+      //z[i*Nx+j] = tmp[(Ny-i-1)*Nx+j];
+      z[i*Nx+j] = tmp[i*Nx+j];
     }
   }
 }

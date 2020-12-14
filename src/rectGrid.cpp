@@ -57,8 +57,10 @@ void RectGrid::common_constructor(int Nx,int Ny,double xmin,double xmax,double y
 void RectGrid::set_interp(std::string interp){
   if( interp == "bilinear" ){
     this->interp2d = &RectGrid::interp2d_bilinear;
-  } else {
+  } else if( interp == "bicubic" ){
     this->interp2d = &RectGrid::interp2d_bicubic;
+  } else {
+    this->interp2d = &RectGrid::interp2d_nearest;
   }
 }
 
@@ -302,7 +304,22 @@ bool RectGrid::match_point_to_closest_16(double x,double y,int* i,int* j){
   return true;
 }
 
+
+double RectGrid::interp2d_nearest(double x,double y,double* f0){
+  if( !this->point_between_pixel_centers(x,y,0) ){
+    return 0.0;
+  }
+
+  int i0,j0;
+  this->match_point_to_pixel(x,y,i0,j0);
+  return f0[i0*this->Nx+j0];
+}
+
 double RectGrid::interp2d_bilinear(double x,double y,double* f0){
+   if( !this->point_between_pixel_centers(x,y,0) ){
+     return 0.0;
+   }
+
   //    a     b
   // 0-----------1
   // | w3  |  w2 |  c
@@ -330,6 +347,10 @@ double RectGrid::interp2d_bilinear(double x,double y,double* f0){
 }
 
 double RectGrid::interp2d_bicubic(double x,double y,double* dummy){
+  if( !this->point_between_pixel_centers(x,y,1) ){
+    return 0.0;
+  }
+  
   if( this->zx == NULL ){
     this->calculate_zx();
   }
