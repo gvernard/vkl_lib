@@ -123,6 +123,7 @@ RectGrid* RectGrid::embeddedNewGrid(int new_Nx,int new_Ny,std::string mode){
   RectGrid* new_grid = new RectGrid(new_Nx,new_Ny,new_xmin,new_xmax,new_ymin,new_ymax,this->options);
 
   if( this->z == NULL ){
+    // std::cout << "z is NULL" << std::endl;
     return new_grid;
   } else if( new_Nx > this->Nx && new_Ny > this->Ny ){
     new_grid->z = (double*) calloc(new_grid->Nz,sizeof(double));
@@ -141,6 +142,7 @@ RectGrid* RectGrid::embeddedNewGrid(int new_Nx,int new_Ny,std::string mode){
     }
     return new_grid;
   } else if( new_Nx < this->Nx && new_Ny < this->Ny ){
+    new_grid->z = (double*) calloc(new_grid->Nz,sizeof(double));
     if( mode == "interp" ){
       for(int i=0;i<new_Ny;i++){
 	for(int j=0;j<new_Nx;j++){
@@ -151,11 +153,11 @@ RectGrid* RectGrid::embeddedNewGrid(int new_Nx,int new_Ny,std::string mode){
       }
       return new_grid;
     } else if( mode == "additive" ){
+      int i0,j0;
       for(int i=0;i<this->Ny;i++){
-	int ii = (int) floor(this->center_y[i]/new_grid->step_y);
 	for(int j=0;j<this->Nx;j++){
-	  int jj = (int) floor(this->center_x[j]/new_grid->step_x);
-	  new_grid->z[ii*new_grid->Nx + jj] += this->z[i*this->Nx + j];
+	  new_grid->match_point_to_pixel(this->center_x[j],this->center_y[i],i0,j0);
+	  new_grid->z[i0*new_grid->Nx + j0] += this->z[i*this->Nx + j];
 	}
       }
       return new_grid;
@@ -175,10 +177,12 @@ RectGrid* RectGrid::embeddedNewGrid(int new_Nx,int new_Ny,std::string mode){
       free(counts);
       return new_grid;
     } else {
-      //throw exceptiong
+      //      std::cout << "something wrong" << std::endl;
+      //throw exception
     }
 
   } else {
+    // std::cout << "dimensions wrong" << std::endl;
     // throw exception
   }
 }
