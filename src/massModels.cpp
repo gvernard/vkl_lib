@@ -221,7 +221,8 @@ void Spemd::updateMassPars(std::map<std::string,double> pars){
     mpars["pa"] = (pars["pa"] + 90.0) * 0.01745329251; // in rad
   }
   if( pars.find("b") != pars.end() ){
-      mpars["b"] = pow(pars["b"],2.0*mpars["e"])*(2.0-2.0*mpars["e"])/(mpars["q"]*2.0); // this is correct!
+    mpars["b"] = pow(pars["b"],2.0*mpars["e"])*(2.0-2.0*mpars["e"])/(2.0*mpars["q"]); // this is correct!
+    //mpars["b"] = pow(pars["b"],2.0*mpars["e"])*(2.0-2.0*mpars["e"])/(2.0*pow(mpars["q"],mpars["e"])); // this is for GLEE
   }
   if( pars.find("s") != pars.end() ){
     mpars["s2"] = pow(pars["s"],2);
@@ -252,6 +253,7 @@ double Spemd::kappa(double xin,double yin){
 
   double omega = x_t*x_t + y_t*y_t/(mpars["q"]*mpars["q"]); // this does not depend on using omega, omega', or zeta, as long as I change correctly to these elliptical radii.
   return mpars["b"]/pow(omega+mpars["s2"],mpars["e"]);
+  //return (2.0*pow(mpars["q"],mpars["e"])/(1+mpars["q"]))*mpars["b"]/pow(omega+mpars["s2"],mpars["e"]);
 }
 
 void Spemd::gamma(double xin,double yin,double& gamma_mag,double& gamma_phi){
