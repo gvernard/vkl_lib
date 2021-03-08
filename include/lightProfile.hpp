@@ -19,6 +19,7 @@ public:
   std::map<std::string,double> ppars;
 
   BaseProfile(){};
+  BaseProfile(const BaseProfile& other);
   ~BaseProfile(){};
 
   virtual void updateProfilePars(std::map<std::string,double> pars) = 0;
@@ -47,6 +48,7 @@ public:
 class Sersic: public BaseProfile {
 public:
   Sersic(std::map<std::string,double> pars);
+  Sersic(const Sersic& other);
   ~Sersic(){};
   void updateProfilePars(std::map<std::string,double> pars);
   double value(double x,double y);
@@ -67,6 +69,7 @@ private:
 class Gauss: public BaseProfile {
 public:
   Gauss(std::map<std::string,double> pars);
+  Gauss(const Gauss& other);
   ~Gauss(){};
   void updateProfilePars(std::map<std::string,double> pars);
   double value(double x,double y);
@@ -87,6 +90,7 @@ private:
 class Custom: public BaseProfile,public RectGrid {
 public:
   Custom(std::string filepath,int Nx,int Ny,double xmin,double xmax,double ymin,double ymax,double Mtot,std::string interp);
+  Custom(const Custom& other);  
   ~Custom(){};
   void updateProfilePars(std::map<std::string,double> pars){};
   double value(double x,double y);

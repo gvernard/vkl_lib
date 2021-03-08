@@ -27,6 +27,16 @@ typedef K::Point_2                                                     Point;
 */
 
 
+//BaseClass: BaseProfile
+//===============================================================================================================
+BaseProfile::BaseProfile(const BaseProfile& other){
+  this->Npars = other.Npars;
+  this->profile_type = other.profile_type;
+  this->ppars = other.ppars;
+}
+
+
+
 //Class: CollectionProfiles
 //===============================================================================================================
 CollectionProfiles::CollectionProfiles(const CollectionProfiles& other){
@@ -93,6 +103,16 @@ void CollectionProfiles::write_all_profiles(const std::string filepath){
 //===============================================================================================================
 Sersic::Sersic(std::map<std::string,double> pars): BaseProfile(7,"sersic"){
   updateProfilePars(pars);
+}
+
+Sersic::Sersic(const Sersic& other): BaseProfile(other){
+  this->p_xmin = other.p_xmin;
+  this->p_xmax = other.p_xmax;
+  this->p_ymin = other.p_ymin;
+  this->p_ymax = other.p_ymax;
+  this->bn = other.bn;
+  this->cospa = other.cospa;
+  this->sinpa = other.sinpa;
 }
 
 void Sersic::updateProfilePars(std::map<std::string,double> pars){
@@ -162,6 +182,16 @@ Gauss::Gauss(std::map<std::string,double> pars): BaseProfile(6,"gauss"){
   updateProfilePars(pars);
 }
 
+Gauss::Gauss(const Gauss& other): BaseProfile(other){
+  this->p_xmin = other.p_xmin;
+  this->p_xmax = other.p_xmax;
+  this->p_ymin = other.p_ymin;
+  this->p_ymax = other.p_ymax;
+  this->sdev = other.sdev;
+  this->cospa = other.cospa;
+  this->sinpa = other.sinpa;
+}
+
 void Gauss::updateProfilePars(std::map<std::string,double> pars){
   // First modify all parameter values that come from the outside
   for(std::map<std::string,double>::iterator it=pars.begin();it!=pars.end();it++){
@@ -229,6 +259,10 @@ Custom::Custom(std::string filepath,int Nx,int Ny,double xmin,double xmax,double
   this->Mtot = Mtot;
   this->set_interp(interp);
   //  scaleProfile();
+}
+
+Custom::Custom(const Custom& other): BaseProfile(other),RectGrid(other){
+  this->Mtot = other.Mtot;
 }
 
 double Custom::value(double x,double y){
