@@ -133,7 +133,10 @@ void Sie::updateMassPars(std::map<std::string,double> pars){
   }
   // Then convert any of the following accordingly, if they exist in the incoming pars
   if( pars.find("pa") != pars.end() ){
-    mpars["pa"] = (pars["pa"] + 90.0) * 0.01745329251; // in rad
+    mpars["pa"] = (mpars["pa"] + 90.0) * 0.01745329251; // in rad
+  }
+  if( pars.find("theta_E") != pars.end() || pars.find("q") != pars.end() ){
+    mpars["b"] = mpars["theta_E"]/sqrt(mpars["q"]);
   }
 }
 
@@ -147,8 +150,8 @@ void Sie::defl(double xin,double yin,double& xout,double& yout){
   double fac   = sqrt(1.0-mpars["q"]*mpars["q"]);
   double omega = sqrt(mpars["q"]*mpars["q"]*x_t*x_t + y_t*y_t); // this does not depend on using omega, omega', or zeta, as long as I change correctly to these elliptical radii.
 
-  double ax_t = (mpars["b"]/fac)*atan(x_t*fac/omega);
-  double ay_t = (mpars["b"]/fac)*atanh(y_t*fac/omega);
+  double ax_t = (mpars["b"]*mpars["q"]/fac)*atan(x_t*fac/omega);
+  double ay_t = (mpars["b"]*mpars["q"]/fac)*atanh(y_t*fac/omega);
   
   //rotate back according to position angle, no need to translate (this is equivalent to rotating by -pa using the same equations as above)
   xout = ax_t*cos(mpars["pa"]) - ay_t*sin(mpars["pa"]);
@@ -162,7 +165,7 @@ double Sie::kappa(double xin,double yin){
 
   this->check_close_to_origin(x_t,y_t);
 
-  double omega = mpars["q"]*mpars["q"]*x_t*x_t + y_t*y_t; // this does not depend on using omega, omega', or zeta, as long as I change correctly to these elliptical radii.
+  double omega = x_t*x_t + y_t*y_t/(mpars["q"]*mpars["q"]); // this does not depend on using omega, omega', or zeta, as long as I change correctly to these elliptical radii.
   return 0.5*mpars["b"]/sqrt(omega);
 }
 
@@ -173,7 +176,7 @@ void Sie::gamma(double xin,double yin,double& gamma_mag,double& gamma_phi){
 
   this->check_close_to_origin(x_t,y_t);
   
-  double omega     = mpars["q"]*mpars["q"]*x_t*x_t + y_t*y_t; // this does not depend on using omega, omega', or zeta, as long as I change correctly to these elliptical radii.
+  double omega     = x_t*x_t + y_t*y_t/(mpars["q"]*mpars["q"]); // this does not depend on using omega, omega', or zeta, as long as I change correctly to these elliptical radii.
   double z         = atan2(y_t,x_t);        // this is because cos2z = (y^2-x^2)/(x^2+y^2), and sin2z = 2xy/(x^2+y^2)
   double gamma_x_t = -0.5*mpars["b"]*cos(2*z)/sqrt(omega);
   double gamma_y_t = -0.5*mpars["b"]*sin(2*z)/sqrt(omega);
@@ -184,9 +187,19 @@ void Sie::gamma(double xin,double yin,double& gamma_mag,double& gamma_phi){
 }
 
 double Sie::psi(double xin,double yin){
-  double ax,ay;
-  this->defl(xin,yin,ax,ay);
-  double psi = xin*ax + yin*ay;
+  //rotate the coordinate system according to position angle and translate to the lens center
+  double x_t =  (xin-mpars["x0"])*cos(mpars["pa"]) + (yin-mpars["y0"])*sin(mpars["pa"]);
+  double y_t = -(xin-mpars["x0"])*sin(mpars["pa"]) + (yin-mpars["y0"])*cos(mpars["pa"]);
+  
+  this->check_close_to_origin(x_t,y_t);
+  
+  double fac   = sqrt(1.0-mpars["q"]*mpars["q"]);
+  double omega = sqrt(mpars["q"]*mpars["q"]*x_t*x_t + y_t*y_t); // this does not depend on using omega, omega', or zeta, as long as I change correctly to these elliptical radii.
+
+  double ax_t = (mpars["b"]*mpars["q"]/fac)*atan(x_t*fac/omega);
+  double ay_t = (mpars["b"]*mpars["q"]/fac)*atanh(y_t*fac/omega);
+  
+  double psi = x_t*ax_t + y_t*ay_t;
   return psi;
 }
 
@@ -218,10 +231,14 @@ void Spemd::updateMassPars(std::map<std::string,double> pars){
   }
   // Then convert any of the following accordingly, if they exist in the incoming pars
   if( pars.find("pa") != pars.end() ){
-    mpars["pa"] = (pars["pa"] + 90.0) * 0.01745329251; // in rad
+    mpars["pa"] = (mpars["pa"] + 90.0) * 0.01745329251; // in rad
   }
-  if( pars.find("b") != pars.end() ){
-    mpars["b"] = pow(pars["b"],2.0*mpars["e"])*(2.0-2.0*mpars["e"])/(2.0*mpars["q"]); // this is correct!
+  if( pars.find("gam") != pars.end() ){
+    mpars["e"] = (mpars["gam"]-1.0)/2.0;
+  }
+  if( pars.find("theta_E") != pars.end() || pars.find("q") != pars.end() ){
+    mpars["b"] = pow(mpars["theta_E"]/sqrt(mpars["q"]),2*mpars["e"])*(1.0-mpars["e"]);
+    //mpars["b"] = pow(pars["b"],2.0*mpars["e"])*(2.0-2.0*mpars["e"])/(2.0*mpars["q"]); // this is the old implementation
     //mpars["b"] = pow(pars["b"],2.0*mpars["e"])*(2.0-2.0*mpars["e"])/(2.0*pow(mpars["q"],mpars["e"])); // this is for GLEE
   }
   if( pars.find("s") != pars.end() ){
@@ -251,8 +268,8 @@ double Spemd::kappa(double xin,double yin){
   double x_t =  (xin-mpars["x0"])*cos(mpars["pa"]) + (yin-mpars["y0"])*sin(mpars["pa"]);
   double y_t = -(xin-mpars["x0"])*sin(mpars["pa"]) + (yin-mpars["y0"])*cos(mpars["pa"]);
 
-  double omega = x_t*x_t + y_t*y_t/(mpars["q"]*mpars["q"]); // this does not depend on using omega, omega', or zeta, as long as I change correctly to these elliptical radii.
-  return mpars["b"]/pow(omega+mpars["s2"],mpars["e"]);
+  double omega2 = x_t*x_t + y_t*y_t/(mpars["q"]*mpars["q"]); // this does not depend on using omega, omega', or zeta, as long as I change correctly to these elliptical radii.
+  return mpars["b"]/pow(omega2+mpars["s2"],mpars["e"]);
   //return (2.0*pow(mpars["q"],mpars["e"])/(1+mpars["q"]))*mpars["b"]/pow(omega+mpars["s2"],mpars["e"]);
 }
 
