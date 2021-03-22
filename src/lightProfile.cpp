@@ -60,10 +60,9 @@ double CollectionProfiles::all_values(double xin,double yin){
   return value;
 }
 
-void CollectionProfiles::write_all_profiles(const std::string filepath){
+void CollectionProfiles::getExtent(double& xmin,double& xmax,double& ymin,double& ymax){
   std::vector<double> vx;
   std::vector<double> vy;
-  double xmin,xmax,ymin,ymax;
   for(int i=0;i<this->profiles.size();i++){
     this->profiles[i]->get_extent(xmin,xmax,ymin,ymax);
     vx.push_back(xmin);
@@ -78,7 +77,11 @@ void CollectionProfiles::write_all_profiles(const std::string filepath){
   auto resulty = std::minmax_element(std::begin(vy),std::end(vy));
   ymin = *resulty.first;
   ymax = *resulty.second;
+}
 
+void CollectionProfiles::write_all_profiles(const std::string filepath){
+  double xmin,xmax,ymin,ymax;
+  this->getExtent(xmin,xmax,ymin,ymax);
   double w = xmax - xmin;
   double h = ymax - ymin;
   if( h>w ){

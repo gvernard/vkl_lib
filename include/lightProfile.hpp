@@ -40,6 +40,7 @@ public:
   CollectionProfiles(const CollectionProfiles& other);
   ~CollectionProfiles();
   double all_values(double xin,double yin);
+  void getExtent(double& xmin,double& xmax,double& ymin,double& ymax);
   void write_all_profiles(const std::string filepath);
 };
 
