@@ -1,5 +1,7 @@
 #include "massModels.hpp"
 
+#include <algorithm>
+
 extern "C"{
   void fastelldefl_(double* x1,double* x2,double* b,double* g,double* q,double* s2,double* defl);
   void fastellmag_(double* x1,double* x2,double* b,double* g,double* q,double* s2,double* defl,double* jacob);
@@ -80,6 +82,38 @@ double CollectionMassModels::all_psi(double xin,double yin){
     psi += this->models[i]->psi(xin,yin);
   }
   return psi;
+}
+
+void CollectionMassModels::getExtent(double& xmin,double& xmax,double& ymin,double& ymax){
+  std::vector<double> vx;
+  std::vector<double> vy;
+  double tmp_xmin,tmp_xmax,tmp_ymin,tmp_ymax;
+  for(int i=0;i<this->models.size();i++){
+    if( this->models[i]->mass_type == "pert" ){
+      Pert* pert = static_cast<Pert*> (this->models[i]);
+      vx.push_back(pert->xmin);
+      vx.push_back(pert->xmax);
+      vy.push_back(pert->ymin);
+      vy.push_back(pert->ymax);
+    } else if( this->models[i]->mass_type == "external_shear" ){
+      vx.push_back(-2); // just assuming a range of 2x2 arcsec
+      vx.push_back(2);
+      vy.push_back(-2);
+      vy.push_back(2);
+    } else {
+      vx.push_back(this->models[i]->mpars["x0"] - 2.5*this->models[i]->mpars["theta_E"]);
+      vx.push_back(this->models[i]->mpars["x0"] + 2.5*this->models[i]->mpars["theta_E"]);
+      vy.push_back(this->models[i]->mpars["y0"] - 2.5*this->models[i]->mpars["theta_E"]);
+      vy.push_back(this->models[i]->mpars["y0"] + 2.5*this->models[i]->mpars["theta_E"]);
+    }
+  }
+
+  auto resultx = std::minmax_element(std::begin(vx),std::end(vx));
+  xmin = *resultx.first;
+  xmax = *resultx.second;
+  auto resulty = std::minmax_element(std::begin(vy),std::end(vy));
+  ymin = *resulty.first;
+  ymax = *resulty.second;
 }
 
 

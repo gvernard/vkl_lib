@@ -43,6 +43,7 @@ public:
   void all_gamma(double xin,double yin,double& gamma_mag,double& gamma_phi);
   double all_psi(double xin,double yin);
   double detJacobian(double xin,double yin);
+  void getExtent(double& xmin,double& xmax,double& ymin,double& ymax);
 };
 
 class ExternalShear: public BaseMassModel{
