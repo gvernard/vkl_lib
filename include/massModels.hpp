@@ -24,7 +24,8 @@ public:
   virtual double kappa(double xin,double yin)   = 0;
   virtual void gamma(double xin,double yin,double& gamma_mag,double& gamma_phi) = 0;
   virtual double psi(double xin,double yin) = 0;
-
+  virtual void getExtent(double& xmin,double& xmax,double& ymin,double& ymax) = 0;
+  
   void printMassPars();
 
 protected:
@@ -55,6 +56,7 @@ public:
   double kappa(double xin,double yin);
   void gamma(double xin,double yin,double& gamma_mag,double& gamma_phi);
   double psi(double xin,double yin);
+  void getExtent(double& xmin,double& xmax,double& ymin,double& ymax);
 };
 
 class Sie: public BaseMassModel{
@@ -66,6 +68,7 @@ public:
   double kappa(double xin,double yin);
   void gamma(double xin,double yin,double& gamma_mag,double& gamma_phi);
   double psi(double xin,double yin);
+  void getExtent(double& xmin,double& xmax,double& ymin,double& ymax);
 private:
   void check_close_to_origin(double& x,double& y);
 };
@@ -79,6 +82,7 @@ public:
   double kappa(double xin,double yin);
   void gamma(double xin,double yin,double& gamma_mag,double& gamma_phi);
   double psi(double xin,double yin);
+  void getExtent(double& xmin,double& xmax,double& ymin,double& ymax);
 };
 
 class Pert: public BaseMassModel,public FixedSource {
@@ -93,6 +97,7 @@ public:
   double kappa(double xin,double yin);
   void gamma(double xin,double yin,double& gamma_mag,double& gamma_phi);
   double psi(double xin,double yin);
+  void getExtent(double& xmin,double& xmax,double& ymin,double& ymax);
 
   void updateDerivatives();
 };

@@ -89,25 +89,12 @@ void CollectionMassModels::getExtent(double& xmin,double& xmax,double& ymin,doub
   std::vector<double> vy;
   double tmp_xmin,tmp_xmax,tmp_ymin,tmp_ymax;
   for(int i=0;i<this->models.size();i++){
-    if( this->models[i]->mass_type == "pert" ){
-      Pert* pert = static_cast<Pert*> (this->models[i]);
-      vx.push_back(pert->xmin);
-      vx.push_back(pert->xmax);
-      vy.push_back(pert->ymin);
-      vy.push_back(pert->ymax);
-    } else if( this->models[i]->mass_type == "external_shear" ){
-      vx.push_back(-2); // just assuming a range of 2x2 arcsec
-      vx.push_back(2);
-      vy.push_back(-2);
-      vy.push_back(2);
-    } else {
-      vx.push_back(this->models[i]->mpars["x0"] - 2.5*this->models[i]->mpars["theta_E"]);
-      vx.push_back(this->models[i]->mpars["x0"] + 2.5*this->models[i]->mpars["theta_E"]);
-      vy.push_back(this->models[i]->mpars["y0"] - 2.5*this->models[i]->mpars["theta_E"]);
-      vy.push_back(this->models[i]->mpars["y0"] + 2.5*this->models[i]->mpars["theta_E"]);
-    }
+    this->models[i]->getExtent(xmin,xmax,ymin,ymax);
+    vx.push_back(xmin);
+    vx.push_back(xmax);
+    vy.push_back(ymin);
+    vy.push_back(ymax);
   }
-
   auto resultx = std::minmax_element(std::begin(vx),std::end(vx));
   xmin = *resultx.first;
   xmax = *resultx.second;
@@ -137,8 +124,10 @@ void ExternalShear::updateMassPars(std::map<std::string,double> pars){
 }
 
 void ExternalShear::defl(double xin,double yin,double& xout,double& yout){
-  xout = mpars["gx"]*xin + mpars["gy"]*yin;
-  yout = mpars["gy"]*xin - mpars["gx"]*yin;
+  double x = (xin-this->mpars["x0"]);
+  double y = (yin-this->mpars["y0"]);
+  xout = mpars["gx"]*x + mpars["gy"]*y;
+  yout = mpars["gy"]*x - mpars["gx"]*y;
 }
 
 double ExternalShear::kappa(double xin,double yin){
@@ -151,7 +140,16 @@ void ExternalShear::gamma(double xin,double yin,double& gamma_mag,double& gamma_
 }
 
 double ExternalShear::psi(double xin,double yin){
-  return 0.5*mpars["gx"]*(xin*xin-yin*yin) + mpars["gy"]*xin*yin;
+  double x = (xin-this->mpars["x0"]);
+  double y = (yin-this->mpars["y0"]);
+  return 0.5*mpars["gx"]*(x*x-y*y) + mpars["gy"]*x*y;
+}
+
+void ExternalShear::getExtent(double& xmin,double& xmax,double& ymin,double& ymax){
+  xmin = 0.0;
+  xmax = 0.0;
+  ymin = 0.0;
+  ymax = 0.0;
 }
 
 //Derived class from BaseMassModel: Sie (Singular Isothermal Ellipsoid)
@@ -252,6 +250,13 @@ void Sie::check_close_to_origin(double& x_t,double& y_t){
   }
 }
 
+void Sie::getExtent(double& xmin,double& xmax,double& ymin,double& ymax){
+  xmin = this->mpars["x0"] - 2.5*this->mpars["theta_E"];
+  xmax = this->mpars["x0"] + 2.5*this->mpars["theta_E"];
+  ymin = this->mpars["y0"] - 2.5*this->mpars["theta_E"];
+  ymax = this->mpars["y0"] + 2.5*this->mpars["theta_E"];
+}
+
 //Derived class from BaseMassModel: Spemd (Softened Power-law Elliptical Mass Density)
 //===============================================================================================================
 Spemd::Spemd(std::map<std::string,double> pars): BaseMassModel(7,"spemd"){
@@ -337,6 +342,13 @@ double Spemd::psi(double xin,double yin){
   return psi;
 }
 
+void Spemd::getExtent(double& xmin,double& xmax,double& ymin,double& ymax){
+  xmin = this->mpars["x0"] - 2.5*this->mpars["theta_E"];
+  xmax = this->mpars["x0"] + 2.5*this->mpars["theta_E"];
+  ymin = this->mpars["y0"] - 2.5*this->mpars["theta_E"];
+  ymax = this->mpars["y0"] + 2.5*this->mpars["theta_E"];
+}
+
 //Derived class from BaseMassModel: Pert (perturbations on a grid)
 //===============================================================================================================
 Pert::Pert(int Nx,int Ny,double xmin,double xmax,double ymin,double ymax): BaseMassModel(Nx*Ny,"pert"),FixedSource(Nx,Ny,xmin,xmax,ymin,ymax){};
@@ -388,6 +400,13 @@ void Pert::gamma(double xin,double yin,double& gamma_mag,double& gamma_phi){
   double gy  = (this->*interp2d)(xin,yin,this->zxy);
   gamma_mag  = hypot(gx,gy);
   gamma_phi  = 0.5*atan2(gy,gx); // in rad
+}
+
+void Pert::getExtent(double& xmin,double& xmax,double& ymin,double& ymax){
+  xmin = this->xmin;
+  xmax = this->xmax;
+  ymin = this->ymin;
+  ymax = this->ymax;
 }
 
 
