@@ -277,8 +277,8 @@ void Spemd::updateMassPars(std::map<std::string,double> pars){
   }
   if( pars.find("theta_E") != pars.end() || pars.find("q") != pars.end() ){
     mpars["b"] = pow(mpars["theta_E"]/sqrt(mpars["q"]),2*mpars["e"])*(1.0-mpars["e"]);
+    //mpars["b"] = pow(mpars["theta_E"],2*mpars["e"])*(2.0-2.0*mpars["e"])/(1.0+mpars["q"]); // this is for GLEE from the SHARPIII paper
     //mpars["b"] = pow(pars["b"],2.0*mpars["e"])*(2.0-2.0*mpars["e"])/(2.0*mpars["q"]); // this is the old implementation
-    //mpars["b"] = pow(pars["b"],2.0*mpars["e"])*(2.0-2.0*mpars["e"])/(2.0*pow(mpars["q"],mpars["e"])); // this is for GLEE
   }
   if( pars.find("s") != pars.end() ){
     mpars["s2"] = pow(pars["s"],2);
