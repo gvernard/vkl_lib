@@ -120,7 +120,7 @@ RectGrid* RectGrid::embeddedNewGrid(int new_Nx,int new_Ny,std::string mode){
   double new_xmax = this->bound_x[this->Nx];
   double new_ymin = this->bound_y[0];
   double new_ymax = this->bound_y[this->Ny];
-  RectGrid* new_grid = new RectGrid(new_Nx,new_Ny,new_xmin,new_xmax,new_ymin,new_ymax,this->options);
+  static RectGrid* new_grid = new RectGrid(new_Nx,new_Ny,new_xmin,new_xmax,new_ymin,new_ymax,this->options);
 
   if( this->z == NULL ){
     // std::cout << "z is NULL" << std::endl;
