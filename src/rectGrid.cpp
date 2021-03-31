@@ -115,40 +115,40 @@ RectGrid::~RectGrid(){
   free(bound_y);
 }
 
-RectGrid* RectGrid::embeddedNewGrid(int new_Nx,int new_Ny,std::string mode){
+RectGrid RectGrid::embeddedNewGrid(int new_Nx,int new_Ny,std::string mode){
   double new_xmin = this->bound_x[0];
   double new_xmax = this->bound_x[this->Nx];
   double new_ymin = this->bound_y[0];
   double new_ymax = this->bound_y[this->Ny];
-  static RectGrid* new_grid = new RectGrid(new_Nx,new_Ny,new_xmin,new_xmax,new_ymin,new_ymax,this->options);
+  RectGrid new_grid(new_Nx,new_Ny,new_xmin,new_xmax,new_ymin,new_ymax,this->options);
 
   if( this->z == NULL ){
     // std::cout << "z is NULL" << std::endl;
     return new_grid;
   } else if( new_Nx > this->Nx && new_Ny > this->Ny ){
-    new_grid->z = (double*) calloc(new_grid->Nz,sizeof(double));
+    new_grid.z = (double*) calloc(new_grid.Nz,sizeof(double));
     for(int i=0;i<new_Ny;i++){
       for(int j=0;j<new_Nx;j++){
-	double x = new_grid->center_x[j];
-	double y = new_grid->center_y[i];
+	double x = new_grid.center_x[j];
+	double y = new_grid.center_y[i];
 	if( this->point_between_pixel_centers(x,y,0) ){
-	  new_grid->z[i*new_grid->Nx+j] = (this->*interp2d)(x,y,this->z);
+	  new_grid.z[i*new_grid.Nx+j] = (this->*interp2d)(x,y,this->z);
 	} else {
 	  int i0,j0;
 	  match_point_to_pixel(x,y,i0,j0);
-	  new_grid->z[i*new_grid->Nx+j] = this->z[i0*this->Nx+j0];
+	  new_grid.z[i*new_grid.Nx+j] = this->z[i0*this->Nx+j0];
 	}
       }
     }
     return new_grid;
   } else if( new_Nx < this->Nx && new_Ny < this->Ny ){
-    new_grid->z = (double*) calloc(new_grid->Nz,sizeof(double));
+    new_grid.z = (double*) calloc(new_grid.Nz,sizeof(double));
     if( mode == "interp" ){
       for(int i=0;i<new_Ny;i++){
 	for(int j=0;j<new_Nx;j++){
-	  double x = new_grid->center_x[j];
-	  double y = new_grid->center_y[i];
-	  new_grid->z[i*new_grid->Nx+j] = (this->*interp2d)(x,y,this->z);
+	  double x = new_grid.center_x[j];
+	  double y = new_grid.center_y[i];
+	  new_grid.z[i*new_grid.Nx+j] = (this->*interp2d)(x,y,this->z);
 	}
       }
       return new_grid;
@@ -156,23 +156,23 @@ RectGrid* RectGrid::embeddedNewGrid(int new_Nx,int new_Ny,std::string mode){
       int i0,j0;
       for(int i=0;i<this->Ny;i++){
 	for(int j=0;j<this->Nx;j++){
-	  new_grid->match_point_to_pixel(this->center_x[j],this->center_y[i],i0,j0);
-	  new_grid->z[i0*new_grid->Nx + j0] += this->z[i*this->Nx + j];
+	  new_grid.match_point_to_pixel(this->center_x[j],this->center_y[i],i0,j0);
+	  new_grid.z[i0*new_grid.Nx + j0] += this->z[i*this->Nx + j];
 	}
       }
       return new_grid;
     } else if( mode == "integrate" ){
-      int* counts = (int*) calloc(new_grid->Nz,sizeof(int));
+      int* counts = (int*) calloc(new_grid.Nz,sizeof(int));
       int i0,j0;
       for(int i=0;i<this->Ny;i++){
 	for(int j=0;j<this->Nx;j++){
-	  new_grid->match_point_to_pixel(this->center_x[j],this->center_y[i],i0,j0);
-	  new_grid->z[i0*new_grid->Nx + j0] += this->z[i*this->Nx + j];
-	  counts[i0*new_grid->Nx + j0] += 1;
+	  new_grid.match_point_to_pixel(this->center_x[j],this->center_y[i],i0,j0);
+	  new_grid.z[i0*new_grid.Nx + j0] += this->z[i*this->Nx + j];
+	  counts[i0*new_grid.Nx + j0] += 1;
 	}
       }
-      for(int i=0;i<new_grid->Nz;i++){
-	new_grid->z[i] = new_grid->z[i]/counts[i];
+      for(int i=0;i<new_grid.Nz;i++){
+	new_grid.z[i] = new_grid.z[i]/counts[i];
       }
       free(counts);
       return new_grid;

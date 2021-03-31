@@ -38,7 +38,7 @@ public:
   ~RectGrid();
 
   void set_interp(std::string interp);
-  RectGrid* embeddedNewGrid(int new_Nx,int new_Ny,std::string mode="interp");
+  RectGrid embeddedNewGrid(int new_Nx,int new_Ny,std::string mode="interp");
   
   bool point_in_grid(double x,double y);
   bool point_between_pixel_centers(double x,double y,int boundary_size);
