@@ -171,8 +171,10 @@ RectGrid RectGrid::embeddedNewGrid(int new_Nx,int new_Ny,std::string mode){
 	  counts[i0*new_grid.Nx + j0] += 1;
 	}
       }
+      double new_pix_area = new_grid.step_x*new_grid.step_y;
+      std::cout << new_grid.step_x << " " << new_grid.step_y << " " << new_pix_area << std::endl;
       for(int i=0;i<new_grid.Nz;i++){
-	new_grid.z[i] = new_grid.z[i]/counts[i];
+	new_grid.z[i] = new_pix_area*new_grid.z[i]/counts[i];
       }
       free(counts);
       return new_grid;
