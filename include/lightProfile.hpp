@@ -64,6 +64,7 @@ private:
   double bn;
   double cospa;
   double sinpa;
+  double rr;
 };
 
 

@@ -125,6 +125,10 @@ void Sersic::updateProfilePars(std::map<std::string,double> pars){
     ppars[it->first] = it->second;
   }
   // Then convert any of the following accordingly, if they exist in the incoming pars
+  if( pars.find("r_eff") != pars.end() | pars.find("q") != pars.end() ){
+    // r_eff must be the semi-major axis
+    this->rr = ppars["q"]*ppars["r_eff"];
+  }
   if( pars.find("n") != pars.end() ){
     this->bn = 1.9992*ppars["n"] - 0.3271;//From Capaccioli 1989    
   }
@@ -151,7 +155,7 @@ double Sersic::value(double x,double y){
     u =  (x - ppars["x0"])*this->cospa + (y - ppars["y0"])*this->sinpa;
     v = -(x - ppars["x0"])*this->sinpa + (y - ppars["y0"])*this->cospa;
     r = hypot(ppars["q"]*u,v);
-    fac2 = pow(r/ppars["r_eff"],1.0/ppars["n"]) - 1.0;
+    fac2 = pow(r/this->rr,1.0/ppars["n"]) - 1.0;
     return ppars["i_eff"]*exp(-this->bn*fac2);
   } else {
     return 0.0;
