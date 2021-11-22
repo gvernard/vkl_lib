@@ -178,10 +178,10 @@ void Sersic::get_extent(double& xmin,double& xmax,double& ymin,double& ymax){
 }
 
 void Sersic::set_extent(){
-  double dx = fabs(5*ppars["r_eff"]);
+  double dx = fabs(10*ppars["r_eff"]);
   this->p_xmin = ppars["x0"] - dx;
   this->p_xmax = ppars["x0"] + dx;
-  double dy = fabs(5*ppars["r_eff"]);
+  double dy = fabs(10*ppars["r_eff"]);
   this->p_ymin = ppars["y0"] - dy;
   this->p_ymax = ppars["y0"] + dy;
 }
