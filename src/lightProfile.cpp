@@ -140,10 +140,12 @@ void Sersic::updateProfilePars(std::map<std::string,double> pars){
   if( pars.find("M_tot") != pars.end() ){
     // See eq. 4 in Peng et al. 2010
     double fac = pow(ppars["r_eff"],2)*2*M_PI*ppars["n"]*exp(this->bn)*tgamma(2*ppars["n"])*ppars["q"]/pow(this->bn,2*ppars["n"]);
-    ppars["i_eff"] = pow(10.0,-0.4*ppars["M_tot"])/fac;
+    ppars["i_eff"] = pow(10.0,-0.4*(ppars["M_tot"]-ppars["ZP"]))/fac;
+    //std::cout << ppars["i_eff"] << std::endl;
   } else {
     double fac = pow(ppars["r_eff"],2)*2*M_PI*ppars["n"]*exp(this->bn)*tgamma(2*ppars["n"])*ppars["q"]/pow(this->bn,2*ppars["n"]);
-    ppars["M_tot"] = -2.5*log10(fac*ppars["i_eff"]);
+    ppars["M_tot"] = -2.5*log10(fac*ppars["i_eff"]) + ppars["ZP"];
+    //std::cout << ppars["M_tot"] << std::endl;
   }
   set_extent();
 }
