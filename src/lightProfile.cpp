@@ -138,13 +138,12 @@ void Sersic::updateProfilePars(std::map<std::string,double> pars){
     this->sinpa = sin(ppars["pa"]);
   }
   if( pars.find("M_tot") != pars.end() ){
-    double fac = pow(ppars["r_eff"],2)*2*M_PI*ppars["n"]*exp(this->bn)*tgamma(2*ppars["n"])/pow(this->bn,2*ppars["n"]);
-    ppars["i_eff"] = ppars["q"]*pow(10.0,-0.4*ppars["M_tot"])/fac;
-    //std::cout << ppars["i_eff"] << std::endl;
+    // See eq. 4 in Peng et al. 2010
+    double fac = pow(ppars["r_eff"],2)*2*M_PI*ppars["n"]*exp(this->bn)*tgamma(2*ppars["n"])*ppars["q"]/pow(this->bn,2*ppars["n"]);
+    ppars["i_eff"] = pow(10.0,-0.4*ppars["M_tot"])/fac;
   } else {
-    double fac = pow(ppars["r_eff"],2)*2*M_PI*ppars["n"]*exp(this->bn)*tgamma(2*ppars["n"])/pow(this->bn,2*ppars["n"]);
-    ppars["M_tot"] = -2.5*log10(fac*ppars["i_eff"]/ppars["q"]);
-    //std::cout << ppars["M_tot"] << std::endl;
+    double fac = pow(ppars["r_eff"],2)*2*M_PI*ppars["n"]*exp(this->bn)*tgamma(2*ppars["n"])*ppars["q"]/pow(this->bn,2*ppars["n"]);
+    ppars["M_tot"] = -2.5*log10(fac*ppars["i_eff"]);
   }
   set_extent();
 }
