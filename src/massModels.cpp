@@ -281,7 +281,7 @@ void Spemd::updateMassPars(std::map<std::string,double> pars){
     //mpars["b"] = pow(pars["b"],2.0*mpars["e"])*(2.0-2.0*mpars["e"])/(2.0*mpars["q"]); // this is the old implementation
   }
   if( pars.find("s") != pars.end() ){
-    mpars["s2"] = pow(pars["s"],2);
+    mpars["s2"] = pow(pars["s"],2); // I think I need to divide s with sqrt(q)
   }
 }
 
