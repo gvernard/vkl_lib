@@ -1,2 +1,11 @@
 lib
 obj
+configure.ac
+Makefile.am
+.deps
+Makefile
+config.log
+config.status
+libtool
+m4
+.dirstamp
