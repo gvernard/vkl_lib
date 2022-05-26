@@ -27,8 +27,8 @@ AC_ARG_WITH([external],
 # if optional parameter used, extend path flags for compliler and linker
 if test $EXT_PATHSET = 1 ; then
     # extend the compiler and linker flags according to the path set
-    AM_CXXFLAGS="-I$with_external/cfitsio/include -I$with_external/CCfits/include $AM_CXXFLAGS"
-    AM_LDFLAGS="$AM_LDFLAGS -L$with_external/cfitsio/lib -L$with_external/CCfits/lib"
+    AM_CXXFLAGS="-I${with_external}cfitsio/include -I${with_external}CCfits/include $AM_CXXFLAGS"
+    AM_LDFLAGS="$AM_LDFLAGS -L${with_external}cfitsio/lib -L${with_external}CCfits/lib"
 fi
 
 # distribute the changed variables among the Makefiles
