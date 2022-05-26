@@ -180,11 +180,13 @@ RectGrid RectGrid::embeddedNewGrid(int new_Nx,int new_Ny,std::string mode){
     } else {
       //      std::cout << "something wrong" << std::endl;
       //throw exception
+      return new_grid;
     }
 
   } else {
     // std::cout << "dimensions wrong" << std::endl;
     // throw exception
+    return new_grid;	  
   }
 }
 

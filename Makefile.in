@@ -132,7 +132,7 @@ am__uninstall_files_from_dir = { \
   }
 am__installdirs = "$(DESTDIR)$(libdir)"
 LTLIBRARIES = $(lib_LTLIBRARIES)
-libvkl_la_DEPENDENCIES =
+libvkl_la_LIBADD =
 am__dirstamp = $(am__leading_dot)dirstamp
 am_libvkl_la_OBJECTS = src/libvkl_la-baseSourcePlane.lo \
 	src/libvkl_la-covKernels.lo src/libvkl_la-fixedSource.lo \
@@ -145,9 +145,6 @@ AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
 am__v_lt_1 = 
-libvkl_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) \
-	$(LIBTOOLFLAGS) --mode=link $(CXXLD) $(AM_CXXFLAGS) \
-	$(CXXFLAGS) $(libvkl_la_LDFLAGS) $(LDFLAGS) -o $@
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -280,7 +277,9 @@ am__distuninstallcheck_listfiles = $(distuninstallcheck_listfiles) \
 distcleancheck_listfiles = find . -type f -print
 ACLOCAL = @ACLOCAL@
 AMTAR = @AMTAR@
+AM_CXXFLAGS = @AM_CXXFLAGS@
 AM_DEFAULT_VERBOSITY = @AM_DEFAULT_VERBOSITY@
+AM_LDFLAGS = @AM_LDFLAGS@
 AR = @AR@
 AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
@@ -427,8 +426,6 @@ libvkl_la_CPPFLAGS = \
 	-frounding-math \
 	-Iinclude
 
-libvkl_la_LDFLAGS = -shared -fPIC
-libvkl_la_LIBADD = -lgfortran -lCCfits -lcfitsio -lgmp -lCGAL
 all: all-am
 
 .SUFFIXES:
@@ -530,7 +527,7 @@ src/libvkl_la-massModels.lo: src/$(am__dirstamp) \
 src/fastell.lo: src/$(am__dirstamp) src/$(DEPDIR)/$(am__dirstamp)
 
 libvkl.la: $(libvkl_la_OBJECTS) $(libvkl_la_DEPENDENCIES) $(EXTRA_libvkl_la_DEPENDENCIES) 
-	$(AM_V_CXXLD)$(libvkl_la_LINK) -rpath $(libdir) $(libvkl_la_OBJECTS) $(libvkl_la_LIBADD) $(LIBS)
+	$(AM_V_CXXLD)$(CXXLINK) -rpath $(libdir) $(libvkl_la_OBJECTS) $(libvkl_la_LIBADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -941,7 +938,7 @@ maintainer-clean-generic:
 	@echo "it deletes files that may require special tools to rebuild."
 clean: clean-am
 
-clean-am: clean-generic clean-libLTLIBRARIES clean-libtool clean-local \
+clean-am: clean-generic clean-libLTLIBRARIES clean-libtool \
 	mostlyclean-am
 
 distclean: distclean-am
@@ -1035,9 +1032,9 @@ uninstall-am: uninstall-libLTLIBRARIES
 
 .PHONY: CTAGS GTAGS TAGS all all-am am--depfiles am--refresh check \
 	check-am clean clean-cscope clean-generic clean-libLTLIBRARIES \
-	clean-libtool clean-local cscope cscopelist-am ctags ctags-am \
-	dist dist-all dist-bzip2 dist-gzip dist-lzip dist-shar \
-	dist-tarZ dist-xz dist-zip dist-zstd distcheck distclean \
+	clean-libtool cscope cscopelist-am ctags ctags-am dist \
+	dist-all dist-bzip2 dist-gzip dist-lzip dist-shar dist-tarZ \
+	dist-xz dist-zip dist-zstd distcheck distclean \
 	distclean-compile distclean-generic distclean-libtool \
 	distclean-tags distcleancheck distdir distuninstallcheck dvi \
 	dvi-am html html-am info info-am install install-am \
@@ -1054,8 +1051,10 @@ uninstall-am: uninstall-libLTLIBRARIES
 .PRECIOUS: Makefile
 
 
-clean-local:
-	rm -rf autom4te.cache aclocal.m4 aux-dist
+#libvkl_la_LDFLAGS=-shared -fPIC 
+
+#libvkl_la_LIBADD = -lgfortran -lCCfits -lcfitsio -lgmp -lCGAL
+#libvkl_la_LIBADD = @LIBS@
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

@@ -634,6 +634,8 @@ ac_includes_default="\
 ac_subst_vars='am__EXEEXT_FALSE
 am__EXEEXT_TRUE
 LTLIBOBJS
+AM_LDFLAGS
+AM_CXXFLAGS
 LIBOBJS
 CXXCPP
 CPP
@@ -767,14 +769,15 @@ ac_user_opts='
 enable_option_checking
 enable_silent_rules
 enable_dependency_tracking
-enable_shared
 enable_static
+enable_shared
 with_pic
 enable_fast_install
 with_aix_soname
 with_gnu_ld
 with_sysroot
 enable_libtool_lock
+with_external
 '
       ac_precious_vars='build_alias
 host_alias
@@ -1427,8 +1430,8 @@ Optional Features:
                           do not reject slow dependency extractors
   --disable-dependency-tracking
                           speeds up one-time build
+  --enable-static[=PKGS]  build static libraries [default=no]
   --enable-shared[=PKGS]  build shared libraries [default=yes]
-  --enable-static[=PKGS]  build static libraries [default=yes]
   --enable-fast-install[=PKGS]
                           optimize for fast installation [default=yes]
   --disable-libtool-lock  avoid locking (might break parallel builds)
@@ -1444,6 +1447,8 @@ Optional Packages:
   --with-gnu-ld           assume the C compiler uses GNU ld [default=no]
   --with-sysroot[=DIR]    Search for dependent libraries within DIR (or the
                           compiler's sysroot if not specified).
+  --with-external=prefix  try this for a non-standard install prefix of all
+                          the external libraries
 
 Some influential environment variables:
   CXX         C++ compiler command
@@ -8491,6 +8496,35 @@ func_stripname_cnf ()
 
 
 # Set options
+# Check whether --enable-static was given.
+if test "${enable_static+set}" = set; then :
+  enableval=$enable_static; p=${PACKAGE-default}
+    case $enableval in
+    yes) enable_static=yes ;;
+    no) enable_static=no ;;
+    *)
+     enable_static=no
+      # Look at the argument we got.  We use all the common list separators.
+      lt_save_ifs=$IFS; IFS=$IFS$PATH_SEPARATOR,
+      for pkg in $enableval; do
+	IFS=$lt_save_ifs
+	if test "X$pkg" = "X$p"; then
+	  enable_static=yes
+	fi
+      done
+      IFS=$lt_save_ifs
+      ;;
+    esac
+else
+  enable_static=no
+fi
+
+
+
+
+
+
+
 
 
 
@@ -8523,36 +8557,6 @@ else
   enable_shared=yes
 fi
 
-
-
-
-
-
-
-
-
-  # Check whether --enable-static was given.
-if test "${enable_static+set}" = set; then :
-  enableval=$enable_static; p=${PACKAGE-default}
-    case $enableval in
-    yes) enable_static=yes ;;
-    no) enable_static=no ;;
-    *)
-     enable_static=no
-      # Look at the argument we got.  We use all the common list separators.
-      lt_save_ifs=$IFS; IFS=$IFS$PATH_SEPARATOR,
-      for pkg in $enableval; do
-	IFS=$lt_save_ifs
-	if test "X$pkg" = "X$p"; then
-	  enable_static=yes
-	fi
-      done
-      IFS=$lt_save_ifs
-      ;;
-    esac
-else
-  enable_static=yes
-fi
 
 
 
@@ -19111,6 +19115,38 @@ fi
 done
 
 
+
+
+# adding the lib to the files to link
+##########################################################################
+# adding the XXX library (e.g. with static name 'libXXX.a')
+##########################################################################
+LIBS="-lgfortran -lCCfits -lcfitsio -lgmp -lCGAL $LIBS"
+
+# introduce the optional configure parameter for a non-standard install prefix of XXX
+
+# Check whether --with-external was given.
+if test "${with_external+set}" = set; then :
+  withval=$with_external; EXT_PATHSET=1
+else
+  EXT_PATHSET=0
+fi
+
+
+# if optional parameter used, extend path flags for compliler and linker
+if test $EXT_PATHSET = 1 ; then
+    # extend the compiler and linker flags according to the path set
+    AM_CXXFLAGS="-I$with_external/cfitsio/include -I$with_external/CCfits/include $AM_CXXFLAGS"
+    AM_LDFLAGS="$AM_LDFLAGS -L$with_external/cfitsio/lib -L$with_external/CCfits/lib"
+fi
+
+# distribute the changed variables among the Makefiles
+
+
+
+
+
+
 ac_config_files="$ac_config_files Makefile"
 
 
@@ -19861,8 +19897,8 @@ double_quote_subst='$double_quote_subst'
 delay_variable_subst='$delay_variable_subst'
 macro_version='`$ECHO "$macro_version" | $SED "$delay_single_quote_subst"`'
 macro_revision='`$ECHO "$macro_revision" | $SED "$delay_single_quote_subst"`'
-enable_shared='`$ECHO "$enable_shared" | $SED "$delay_single_quote_subst"`'
 enable_static='`$ECHO "$enable_static" | $SED "$delay_single_quote_subst"`'
+enable_shared='`$ECHO "$enable_shared" | $SED "$delay_single_quote_subst"`'
 pic_mode='`$ECHO "$pic_mode" | $SED "$delay_single_quote_subst"`'
 enable_fast_install='`$ECHO "$enable_fast_install" | $SED "$delay_single_quote_subst"`'
 shared_archive_member_spec='`$ECHO "$shared_archive_member_spec" | $SED "$delay_single_quote_subst"`'
@@ -20910,11 +20946,11 @@ available_tags='CXX F77 '
 macro_version=$macro_version
 macro_revision=$macro_revision
 
-# Whether or not to build shared libraries.
-build_libtool_libs=$enable_shared
-
 # Whether or not to build static libraries.
 build_old_libs=$enable_static
+
+# Whether or not to build shared libraries.
+build_libtool_libs=$enable_shared
 
 # What type of objects to build.
 pic_mode=$pic_mode

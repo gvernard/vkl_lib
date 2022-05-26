@@ -160,7 +160,7 @@ public:
       }
       return new Gauss(tmp_pars);
     } else if( profile_name == "irregular" ){
-
+      return NULL;
     } else if( profile_name == "custom" ){
       std::string filepath = pars["filepath"];
       std::string interp   = pars["interp"];
