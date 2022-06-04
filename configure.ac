@@ -11,7 +11,7 @@ AC_PROG_F77
 LT_INIT([disable-static])
 
 
-ac_new_CPPFLAGS=""
+ac_new_CPPFLAGS="-Iinclude"
 ac_new_LDFLAGS=""
 ac_new_LIBS=""
 
