@@ -15,14 +15,6 @@ libvkl_la_SOURCES= \
 	src/massModels.cpp \
 	src/fastell.f
 
-libvkl_la_CPPFLAGS = \
-	-std=c++11 \
-	-fPIC \
-	-g \
-	-frounding-math \
-	-Iinclude
+libvkl_la_CXXFLAGS = -std=c++11	-fPIC -g -frounding-math
 
-#libvkl_la_LDFLAGS=-shared -fPIC 
-
-#libvkl_la_LIBADD = -lgfortran -lCCfits -lcfitsio -lgmp -lCGAL
-#libvkl_la_LIBADD = @LIBS@
+libvkl_la_LIBADD = -lgfortran -lCCfits -lcfitsio -lgmp -lCGAL -ljsoncpp

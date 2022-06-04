@@ -1,41 +1,87 @@
 AC_INIT([libvkl], [0.1], [gvernard@astro.rug.nl])
+AC_LANG(C++)
 AC_CONFIG_AUX_DIR(aux-dist)
 AM_INIT_AUTOMAKE([foreign subdir-objects])
 AC_CONFIG_MACRO_DIRS([m4])
+AC_PREFIX_DEFAULT($PWD)
 
 AC_PROG_CXX
 AC_PROG_F77
 
 LT_INIT([disable-static])
-AC_FUNC_MALLOC
-AC_CHECK_FUNCS([floor pow sqrt])
 
 
+ac_new_CPPFLAGS=""
+ac_new_LDFLAGS=""
+ac_new_LIBS=""
 
-# adding the lib to the files to link
-##########################################################################
-# adding the XXX library (e.g. with static name 'libXXX.a')
-##########################################################################
-LIBS="-lgfortran -lCCfits -lcfitsio -lgmp -lCGAL $LIBS"
+AC_ARG_WITH([cfitsio],
+    [AS_HELP_STRING([--with-cfitsio=prefix],[give the path to the cfitsio library and header files.])],
+    [
+	ac_new_CPPFLAGS+=" -I${withval}/include"
+	ac_new_LDFLAGS+=" -L${withval}/lib"
+	ac_new_LIBS+=" -lcfitsio"
+    ],
+    [
+	AC_CHECK_LIB(cfitsio,main,[],[AC_MSG_ERROR("you need to have the cfitsio library installed.")])
+	AC_CHECK_HEADERS(fitsio.h,[],[AC_MSG_ERROR("you need to have the cfitsio header files installed.")])
+    ])
 
-# introduce the optional configure parameter for a non-standard install prefix of XXX
-AC_ARG_WITH([external],
-    [AS_HELP_STRING([--with-external=prefix],[try this for a non-standard install prefix of all the external libraries])],
-    [EXT_PATHSET=1],
-    [EXT_PATHSET=0])
-	
-# if optional parameter used, extend path flags for compliler and linker
-if test $EXT_PATHSET = 1 ; then
-    # extend the compiler and linker flags according to the path set
-    AM_CXXFLAGS="-I${with_external}cfitsio/include -I${with_external}CCfits/include $AM_CXXFLAGS"
-    AM_LDFLAGS="$AM_LDFLAGS -L${with_external}cfitsio/lib -L${with_external}CCfits/lib"
-fi
+AC_ARG_WITH([CCfits],
+    [AS_HELP_STRING([--with-CCfits=prefix],[give the path to the CCfits library and header files.])],
+    [
+	ac_new_CPPFLAGS+=" -I${withval}/include"
+	ac_new_LDFLAGS+=" -L${withval}/lib"
+	ac_new_LIBS+=" -lCCfits"
+    ],
+    [
+	AC_CHECK_LIB(CCfits,main,[],[AC_MSG_ERROR("you need to have the CCfits library installed.")])
+	AC_CHECK_HEADERS(CCfits/CCfits.h,[],[AC_MSG_ERROR("you need to have the CCfits header files installed.")])
+    ])
 
-# distribute the changed variables among the Makefiles
+AC_ARG_WITH([gmp],
+    [AS_HELP_STRING([--with-gmp=prefix],[give the path to the gmp library and header files.])],
+    [
+	ac_new_CPPFLAGS+=" -I${withval}/include"
+	ac_new_LDFLAGS+=" -L${withval}/lib"
+	ac_new_LIBS+=" -lgmp"
+    ],
+    [
+	AC_CHECK_LIB(gmp,main,[],[AC_MSG_ERROR("you need to have the gmp library installed.")])
+	AC_CHECK_HEADERS(gmp.h,[],[AC_MSG_ERROR("you need to have the gmp header files installed.")])
+    ])
+
+AC_ARG_WITH([CGAL],
+    [AS_HELP_STRING([--with-CGAL=prefix],[give the path to the CGAL library and header files.])],
+    [
+	ac_new_CPPFLAGS+=" -I${withval}/include"
+	ac_new_LDFLAGS+=" -L${withval}/lib"
+	ac_new_LIBS+=" -lCGAL"
+    ],
+    [
+	AC_CHECK_LIB(CGAL,main,[],[AC_MSG_ERROR("you need to have the CGAL library installed.")])
+	#AC_CHECK_HEADERS(CGAL/CGAL.h,[],[AC_MSG_ERROR("you need to have the CGAL header files installed.")])
+    ])
+
+AC_ARG_WITH([jsoncpp],
+    [AS_HELP_STRING([--with-jsoncpp=prefix],[give the path to the jsoncpp library and header files.])],
+    [
+	ac_new_CPPFLAGS+=" -I${withval}/include"
+	ac_new_LDFLAGS+=" -L${withval}/lib"
+	ac_new_LIBS+=" -ljsoncpp"
+    ],
+    [
+	AC_CHECK_LIB(jsoncpp,main,[],[AC_MSG_ERROR("you need to have the jsoncpp library installed.")])
+	AC_CHECK_HEADERS(json/json.h,[],[AC_MSG_ERROR("you need to have the jsoncpp header files installed.")])
+    ])
+
+CPPFLAGS+="$ac_new_CPPFLAGS"
+LDFLAGS+="$ac_new_LDFLAGS"
+LIBS+="$ac_new_LIBS"
+
+AC_SUBST([CPPFLAGS])
+AC_SUBST([LDFLAGS])
 AC_SUBST([LIBS])
-AC_SUBST([AM_CXXFLAGS])
-AC_SUBST([AM_LDFLAGS])
-
 
 
 AC_CONFIG_FILES([Makefile])
