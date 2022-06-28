@@ -1,5 +1,6 @@
 lib
 obj
+configure_command.txt
 
 libtool
 aux-dist
