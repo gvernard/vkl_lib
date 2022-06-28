@@ -1,5 +1,7 @@
 #include "irreGrid.hpp"
 
+using namespace vkl;
+
 // Class: Triangle
 //===============================================================================================================
 Triangle::Triangle(double* x,double* y){

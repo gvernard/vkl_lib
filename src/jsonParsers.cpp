@@ -4,6 +4,9 @@
 
 #include <map>
 #include <iostream>
+
+using namespace vkl;
+
 CollectionMassModels JsonParsers::parse_mass_model(const Json::Value json,std::string prefix){
   CollectionMassModels mycollection;
   mycollection.models.resize(json.size());

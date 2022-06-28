@@ -7,6 +7,8 @@
 
 #include <iostream>
 
+using namespace vkl;
+
 RectGrid::RectGrid(int Nx,int Ny,double xmin,double xmax,double ymin,double ymax,std::map<std::string,std::string> options){
   this->common_constructor(Nx,Ny,xmin,xmax,ymin,ymax,options);
 }

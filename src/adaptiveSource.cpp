@@ -7,7 +7,7 @@
 #include <CGAL/Delaunay_triangulation_adaptation_traits_2.h>
 #include <CGAL/Delaunay_triangulation_adaptation_policies_2.h>
 
-
+using namespace vkl;
 
 //Derived class from BaseSourcePlane: AdaptiveSource
 //===============================================================================================================

@@ -1,5 +1,7 @@
 #include "sourcePlane.hpp"
 
+using namespace vkl;
+
 
 BaseSourcePlane:: BaseSourcePlane(BaseCovKernel* kernel){
   this->set_kernel(kernel);

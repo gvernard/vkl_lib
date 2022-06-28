@@ -7,6 +7,8 @@
 #include "fitsInterface.hpp"
 #include "covKernels.hpp"
 
+using namespace vkl;
+
 //Derived class from BaseSourcePlane: FixedSource
 //===============================================================================================================
 FixedSource::FixedSource(int Nx,int Ny,double xmin,double xmax,double ymin,double ymax,BaseCovKernel* kernel): BaseSourcePlane(kernel),RectGrid(Nx,Ny,xmin,xmax,ymin,ymax) {

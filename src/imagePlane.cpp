@@ -9,6 +9,8 @@
 #include "fitsInterface.hpp"
 #include "rectGrid.hpp"
 
+using namespace vkl;
+
 //ImagePlane class implementation
 //============================================================================================
 ImagePlane::ImagePlane(const std::string filepath,int Nx,int Ny,double xmin,double xmax,double ymin,double ymax){

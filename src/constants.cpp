@@ -1,5 +1,8 @@
 #include "constants.hpp"
 
+using namespace vkl;
+
+
 // Definition of static variables:
 // 2nd derivatives
 const std::vector<int>    Constants::derivative_1_forward_1_index({0,1});

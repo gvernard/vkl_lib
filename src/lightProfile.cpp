@@ -28,6 +28,8 @@ typedef K::Point_2                                                     Point;
 */
 
 
+using namespace vkl;
+
 //BaseClass: BaseProfile
 //===============================================================================================================
 BaseProfile::BaseProfile(const BaseProfile& other){

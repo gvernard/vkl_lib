@@ -2,6 +2,8 @@
 
 #include <algorithm>
 
+using namespace vkl;
+
 extern "C"{
   void fastelldefl_(double* x1,double* x2,double* b,double* g,double* q,double* s2,double* defl);
   void fastellmag_(double* x1,double* x2,double* b,double* g,double* q,double* s2,double* defl,double* jacob);
