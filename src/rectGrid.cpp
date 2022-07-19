@@ -180,13 +180,13 @@ RectGrid RectGrid::embeddedNewGrid(int new_Nx,int new_Ny,std::string mode){
       free(counts);
       return new_grid;
     } else {
-      //      std::cout << "something wrong" << std::endl;
+      std::cout << "something wrong" << std::endl;
       //throw exception
       return new_grid;
     }
 
   } else {
-    // std::cout << "dimensions wrong" << std::endl;
+    std::cout << "dimensions wrong" << std::endl;
     // throw exception
     return new_grid;	  
   }
@@ -201,7 +201,8 @@ bool RectGrid::point_in_grid(double x,double y){
 }
 
 bool RectGrid::point_between_pixel_centers(double x,double y,int boundary_size){
-  if( x < this->center_x[0] || this->center_x[this->Nx-1-boundary_size] < x || y < this->center_y[0] || this->center_y[this->Ny-1-boundary_size] < y ){
+  if( x <= this->center_x[0] || this->center_x[this->Nx-1-boundary_size] <= x || y <= this->center_y[0] || this->center_y[this->Ny-1-boundary_size] <= y ){
+    //if( x < this->center_x[0] || this->center_x[this->Nx-1-boundary_size] < x || y < this->center_y[0] || this->center_y[this->Ny-1-boundary_size] < y ){
     return false;
   } else {
     return true;
@@ -325,10 +326,10 @@ double RectGrid::interp2d_nearest(double x,double y,double* f0){
 }
 
 double RectGrid::interp2d_bilinear(double x,double y,double* f0){
-   if( !this->point_between_pixel_centers(x,y,0) ){
-     return 0.0;
-   }
-
+  if( !this->point_between_pixel_centers(x,y,0) ){
+    return 0.0;
+  }
+  
   //    a     b
   // 0-----------1
   // | w3  |  w2 |  c
@@ -340,7 +341,7 @@ double RectGrid::interp2d_bilinear(double x,double y,double* f0){
   
   int ii[4],jj[4];
   match_point_to_closest_4(x,y,ii,jj);
-
+  
   double a = (x - this->center_x[jj[0]]);
   double b = (this->center_x[jj[1]] - x);
   double c = (this->center_y[ii[0]] - y);
