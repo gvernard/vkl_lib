@@ -164,6 +164,7 @@ RectGrid RectGrid::embeddedNewGrid(int new_Nx,int new_Ny,std::string mode){
       }
       return new_grid;
     } else if( mode == "integrate" ){
+      std::cout << "Integrate" << std::endl;
       int* counts = (int*) calloc(new_grid.Nz,sizeof(int));
       int i0,j0;
       for(int i=0;i<this->Ny;i++){
@@ -176,9 +177,30 @@ RectGrid RectGrid::embeddedNewGrid(int new_Nx,int new_Ny,std::string mode){
       double new_pix_area = new_grid.step_x*new_grid.step_y;
       for(int i=0;i<new_grid.Nz;i++){
 	new_grid.z[i] = new_pix_area*new_grid.z[i]/counts[i];
+	std::cout << counts[i] << std::endl;
       }
+      std::cout << new_pix_area << std::endl;
       free(counts);
       return new_grid;
+    } else if( mode == "additive_density" ){
+      std::cout << "Additive density" << std::endl;
+      int i0,j0;
+      for(int i=0;i<this->Ny;i++){
+	for(int j=0;j<this->Nx;j++){
+	  new_grid.match_point_to_pixel(this->center_x[j],this->center_y[i],i0,j0);
+	  new_grid.z[i0*new_grid.Nx + j0] += this->z[i*this->Nx + j];
+	}
+      }
+      double old_pix_area = this->step_x*this->step_y;
+      double new_pix_area = new_grid.step_x*new_grid.step_y;
+      double factor = old_pix_area/new_pix_area;
+      std::cout << old_pix_area  << std::endl;
+      std::cout << new_pix_area  << std::endl;
+      std::cout << factor  << std::endl;
+      for(int i=0;i<new_grid.Nz;i++){
+	new_grid.z[i] = factor*new_grid.z[i];
+      }
+      return new_grid;      
     } else {
       std::cout << "something wrong" << std::endl;
       //throw exception
