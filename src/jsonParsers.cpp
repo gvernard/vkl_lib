@@ -36,6 +36,11 @@ CollectionProfiles JsonParsers::parse_profile(const Json::Value json,std::string
     if( type == "custom" ){
       pars["filepath"] = prefix + pars["filepath"];
     }
+    if( json[k].isMember("mass-to-light") ){
+      for(Json::Value::const_iterator it=json[k]["mass-to-light"].begin();it!=json[k]["mass-to-light"].end();it++){
+	pars.insert( std::pair<std::string,std::string> (it.key().asString(),it->asString()) );
+      }
+    }
     mycollection.profiles[k] = FactoryProfile::getInstance()->createProfile(type,pars);
   }
   return mycollection;
@@ -53,6 +58,11 @@ CollectionProfiles JsonParsers::parse_profile(const Json::Value json,double ZP,s
     }
     if( type == "custom" ){
       pars["filepath"] = prefix + pars["filepath"];
+    }
+    if( json[k].isMember("mass-to-light") ){
+      for(Json::Value::const_iterator it=json[k]["mass-to-light"].begin();it!=json[k]["mass-to-light"].end();it++){
+	pars.insert( std::pair<std::string,std::string> (it.key().asString(),it->asString()) );
+      }
     }
     pars.insert( std::pair<std::string,std::string> ("ZP",std::to_string(ZP)) ); // Adding the ZP
     mycollection.profiles[k] = FactoryProfile::getInstance()->createProfile(type,pars);

@@ -26,10 +26,10 @@ namespace vkl {
     ~BaseProfile(){};
 
     virtual void updateProfilePars(std::map<std::string,double> pars) = 0;
-    virtual double value(double x,double y) = 0;
+    virtual double value(double x,double y) = 0;         // What light units does it return?
+    virtual double value_to_mass(double x,double y) = 0; // Must return kg/m^2
     virtual bool is_in_range(double xin,double yin) = 0;
     virtual void get_extent(double& xmin,double& xmax,double& ymin,double& ymax) = 0;
-    virtual double value_to_mass(double x,double y) = 0;
     
   protected:
     BaseProfile(int Npars,std::string profile_type): Npars(Npars), profile_type(profile_type){};

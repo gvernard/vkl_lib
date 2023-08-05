@@ -65,11 +65,11 @@ double CollectionProfiles::all_values(double xin,double yin){
 }
 
 double CollectionProfiles::all_values_to_mass(double xin,double yin){
-  double kappa_star = 0.0;
+  double value = 0.0;
   for(int i=0;i<this->profiles.size();i++){
-    kappa_star += this->profiles[i]->value_to_mass(xin,yin);
+    value += this->profiles[i]->value_to_mass(xin,yin);
   }
-  return kappa_star;
+  return value;
 }
 
 void CollectionProfiles::getExtent(double& xmin,double& xmax,double& ymin,double& ymax){
@@ -152,11 +152,11 @@ void Sersic::updateProfilePars(std::map<std::string,double> pars){
     // See eq. 4 in Peng et al. 2010
     double fac = pow(ppars["r_eff"],2)*2*M_PI*ppars["n"]*exp(this->bn)*tgamma(2*ppars["n"])*ppars["q"]/pow(this->bn,2*ppars["n"]);
     ppars["i_eff"] = pow(10.0,-0.4*(ppars["M_tot"]-ppars["ZP"]))/fac;
-    std::cout << "I_eff= " << ppars["i_eff"] << std::endl;
+    //std::cout << "I_eff= " << ppars["i_eff"] << std::endl;
   } else {
     double fac = pow(ppars["r_eff"],2)*2*M_PI*ppars["n"]*exp(this->bn)*tgamma(2*ppars["n"])*ppars["q"]/pow(this->bn,2*ppars["n"]);
     ppars["M_tot"] = -2.5*log10(fac*ppars["i_eff"]) + ppars["ZP"];
-    std::cout << "M_tot= " << ppars["M_tot"] << std::endl;
+    //std::cout << "M_tot= " << ppars["M_tot"] << std::endl;
   }
   if( pars.find("upsilon") == pars.end() ){
     // if not in given parameters set to zero (no mass from this profile)
