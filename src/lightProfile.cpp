@@ -36,6 +36,7 @@ BaseProfile::BaseProfile(const BaseProfile& other){
   this->Npars = other.Npars;
   this->profile_type = other.profile_type;
   this->ppars = other.ppars;
+  this->upsilon = other.upsilon;
 }
 
 
@@ -61,6 +62,14 @@ double CollectionProfiles::all_values(double xin,double yin){
     value += this->profiles[i]->value(xin,yin);
   }
   return value;
+}
+
+double CollectionProfiles::all_values_to_mass(double xin,double yin){
+  double kappa_star = 0.0;
+  for(int i=0;i<this->profiles.size();i++){
+    kappa_star += this->profiles[i]->value_to_mass(xin,yin);
+  }
+  return kappa_star;
 }
 
 void CollectionProfiles::getExtent(double& xmin,double& xmax,double& ymin,double& ymax){
@@ -107,7 +116,7 @@ void CollectionProfiles::write_all_profiles(const std::string filepath){
 
 //Derived class from BaseAnalyticFunction: Sersic
 //===============================================================================================================
-Sersic::Sersic(std::map<std::string,double> pars): BaseProfile(7,"sersic"){
+Sersic::Sersic(std::map<std::string,double> pars): BaseProfile(9,"sersic"){
   updateProfilePars(pars);
 }
 
@@ -149,6 +158,14 @@ void Sersic::updateProfilePars(std::map<std::string,double> pars){
     ppars["M_tot"] = -2.5*log10(fac*ppars["i_eff"]) + ppars["ZP"];
     std::cout << "M_tot= " << ppars["M_tot"] << std::endl;
   }
+  if( pars.find("upsilon") == pars.end() ){
+    // if not in given parameters set to zero (no mass from this profile)
+    this->upsilon = 0.0; // upsilon is a base class variable
+  }
+  if( pars.find("upsilon_exp") == pars.end() ){
+    // if not in given parameters set to zero (no radial dependence of mass-to-light)
+    ppars["upsilon_exp"] = 0.0;
+  }
   set_extent();
 }
 
@@ -160,6 +177,20 @@ double Sersic::value(double x,double y){
     r = hypot(ppars["q"]*u,v);
     fac2 = pow(r/this->rr,1.0/ppars["n"]) - 1.0;
     return ppars["i_eff"]*exp(-this->bn*fac2);
+  } else {
+    return 0.0;
+  }
+}
+
+double Sersic::value_to_mass(double x,double y){
+  if( is_in_range(x,y) ){
+    double u,v,r,fac,light;
+    light = this->value(x,y);
+    u =  (x - ppars["x0"])*this->cospa + (y - ppars["y0"])*this->sinpa;
+    v = -(x - ppars["x0"])*this->sinpa + (y - ppars["y0"])*this->cospa;
+    r = hypot(ppars["q"]*u,v);
+    fac = this->upsilon*pow(r/this->rr,ppars["upsilon_exp"]);
+    return fac*light;
   } else {
     return 0.0;
   }
@@ -191,7 +222,7 @@ void Sersic::set_extent(){
 
 //Derived class from BaseAnalyticFunction: Gauss
 //===============================================================================================================
-Gauss::Gauss(std::map<std::string,double> pars): BaseProfile(6,"gauss"){
+Gauss::Gauss(std::map<std::string,double> pars): BaseProfile(8,"gauss"){
   updateProfilePars(pars);
 }
 
@@ -226,6 +257,14 @@ void Gauss::updateProfilePars(std::map<std::string,double> pars){
     double fac = 2.0*M_PI*pow(ppars["r_eff"],2);
     ppars["M_tot"] = -2.5*log10(fac*ppars["i_eff"]/ppars["q"]);
   }
+  if( pars.find("upsilon") == pars.end() ){
+    // if not in given parameters set to zero (no mass from this profile)
+    this->upsilon = 0.0; // upsilon is a base class variable
+  }
+  if( pars.find("upsilon_exp") == pars.end() ){
+    // if not in given parameters set to zero (no radial dependence of mass-to-light)
+    ppars["upsilon_exp"] = 0.0;
+  }
   set_extent();
 }
 
@@ -236,6 +275,20 @@ double Gauss::value(double x,double y){
     v = - (x - ppars["x0"])*this->sinpa + (y - ppars["y0"])*cospa;
     r2 = (ppars["q"]*ppars["q"]*u*u + v*v)/this->sdev;
     return ppars["i_eff"]*exp(-r2);
+  } else {
+    return 0.0;
+  }
+}
+
+double Gauss::value_to_mass(double x,double y){
+  if( is_in_range(x,y) ){
+    double u,v,r,fac,light;
+    light = this->value(x,y);
+    u =  (x - ppars["x0"])*this->cospa + (y - ppars["y0"])*this->sinpa;
+    v = -(x - ppars["x0"])*this->sinpa + (y - ppars["y0"])*this->cospa;
+    r = hypot(ppars["q"]*u,v);
+    fac = this->upsilon*pow(r/sqrt(this->sdev),ppars["upsilon_exp"]);
+    return fac*light;
   } else {
     return 0.0;
   }
@@ -268,7 +321,7 @@ void Gauss::set_extent(){
 
 //Derived class from BaseProfile: Custom
 //===============================================================================================================
-Custom::Custom(std::string filepath,int Nx,int Ny,double xmin,double xmax,double ymin,double ymax,double Mtot,std::string interp): BaseProfile(0,"custom"),RectGrid(Nx,Ny,xmin,xmax,ymin,ymax,filepath){
+Custom::Custom(std::string filepath,int Nx,int Ny,double xmin,double xmax,double ymin,double ymax,double Mtot,std::string interp,double upsilon): BaseProfile(1,"custom",upsilon),RectGrid(Nx,Ny,xmin,xmax,ymin,ymax,filepath){
   this->Mtot = Mtot;
   this->set_interp(interp);
   scaleProfile();
@@ -282,6 +335,15 @@ double Custom::value(double x,double y){
   if( is_in_range(x,y) ){
     double val = (this->*interp2d)(x,y,this->z);
     return val;
+  } else {
+    return 0.0;
+  }
+}
+
+double Custom::value_to_mass(double x,double y){
+  if( is_in_range(x,y) ){
+    double val = (this->*interp2d)(x,y,this->z);
+    return this->upsilon*val; // No radial dependence, I need some characteristic size of the light profile for that, like the R_1/2, which I don't have yet. 
   } else {
     return 0.0;
   }

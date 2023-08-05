@@ -19,6 +19,7 @@ namespace vkl {
     int Npars;
     std::string profile_type;
     std::map<std::string,double> ppars;
+    double upsilon = 0.0; // Needs to be in units of the solar mass-to-light ratio upsilon_solar.
 
     BaseProfile(){};
     BaseProfile(const BaseProfile& other);
@@ -28,9 +29,14 @@ namespace vkl {
     virtual double value(double x,double y) = 0;
     virtual bool is_in_range(double xin,double yin) = 0;
     virtual void get_extent(double& xmin,double& xmax,double& ymin,double& ymax) = 0;
-  
+    virtual double value_to_mass(double x,double y) = 0;
+    
   protected:
     BaseProfile(int Npars,std::string profile_type): Npars(Npars), profile_type(profile_type){};
+    BaseProfile(int Npars,std::string profile_type,double upsilon): Npars(Npars), profile_type(profile_type), upsilon(upsilon) {};
+    
+  private:
+    double upsilon_solar = 5133; // kg/W
   };
 
 
@@ -42,6 +48,7 @@ namespace vkl {
     CollectionProfiles(const CollectionProfiles& other);
     ~CollectionProfiles();
     double all_values(double xin,double yin);
+    double all_values_to_mass(double xin,double yin);
     void getExtent(double& xmin,double& xmax,double& ymin,double& ymax);
     void write_all_profiles(const std::string filepath);
   };
@@ -55,6 +62,7 @@ namespace vkl {
     ~Sersic(){};
     void updateProfilePars(std::map<std::string,double> pars);
     double value(double x,double y);
+    double value_to_mass(double x,double y);
     bool is_in_range(double xin,double yin);
     void get_extent(double& xmin,double& xmax,double& ymin,double& ymax);
   private:
@@ -77,6 +85,7 @@ namespace vkl {
     ~Gauss(){};
     void updateProfilePars(std::map<std::string,double> pars);
     double value(double x,double y);
+    double value_to_mass(double x,double y);
     bool is_in_range(double xin,double yin);
     void get_extent(double& xmin,double& xmax,double& ymin,double& ymax);
   private:
@@ -93,11 +102,12 @@ namespace vkl {
 
   class Custom: public BaseProfile,public RectGrid {
   public:
-    Custom(std::string filepath,int Nx,int Ny,double xmin,double xmax,double ymin,double ymax,double Mtot,std::string interp);
+    Custom(std::string filepath,int Nx,int Ny,double xmin,double xmax,double ymin,double ymax,double Mtot,std::string interp,double upsilon);
     Custom(const Custom& other);  
     ~Custom(){};
     void updateProfilePars(std::map<std::string,double> pars){};
     double value(double x,double y);
+    double value_to_mass(double x,double y);
     bool is_in_range(double xin,double yin);
     void get_extent(double& xmin,double& xmax,double& ymin,double& ymax);
   private:
@@ -172,12 +182,19 @@ namespace vkl {
 	double xmax = std::stod(pars["xmax"]);
 	double ymin = std::stod(pars["ymin"]);
 	double ymax = std::stod(pars["ymax"]);
+	double Mtot;
 	if( pars.find("M_tot") != pars.end() ){
-	  double Mtot = std::stod(pars["M_tot"]);
-	  return new Custom(filepath,Nx,Ny,xmin,xmax,ymin,ymax,Mtot,interp);
+	  Mtot = std::stod(pars["M_tot"]);
 	} else {
-	  return new Custom(filepath,Nx,Ny,xmin,xmax,ymin,ymax,0.0,interp);
+	  Mtot = 0.0;
 	}
+	double upsilon;
+	if( pars.find("upsilon") != pars.end() ){
+	  upsilon = std::stod(pars["upsilon"]);
+	} else {
+	  upsilon = 0.0;
+	}
+	return new Custom(filepath,Nx,Ny,xmin,xmax,ymin,ymax,Mtot,interp,upsilon);
       } else {
 	return NULL;
       }
