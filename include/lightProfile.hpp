@@ -31,6 +31,7 @@ namespace vkl {
     virtual double value_to_mass(double x,double y) = 0; // Must return kg/m^2
     virtual bool is_in_range(double xin,double yin) = 0;
     virtual void get_extent(double& xmin,double& xmax,double& ymin,double& ymax) = 0;
+    double integrate(int N);
     
   protected:
     BaseProfile(int Npars,std::string profile_type): Npars(Npars), profile_type(profile_type){};

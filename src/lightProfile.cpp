@@ -42,6 +42,26 @@ BaseProfile::BaseProfile(const BaseProfile& other){
   this->ZP = other.ZP;
 }
 
+double BaseProfile::integrate(int N){
+  double xmin,xmax,ymin,ymax;
+  this->get_extent(xmin,xmax,ymin,ymax);
+
+  double x,y;
+  double xstep = (xmax - xmin)/N; 
+  double ystep = (xmax - xmin)/N; 
+  double area = xstep*ystep;
+  double sum = 0.0;
+  for(int i=0;i<N;i++){
+    y = ymin + ystep/2.0 + i*ystep;
+    for(int j=0;j<N;j++){
+      x = xmin + xstep/2.0 + j*xstep;
+      sum += this->value(x,y);
+    }
+  }
+  sum *= area;
+  return sum;  
+}
+
 
 
 //Class: CollectionProfiles
