@@ -9,6 +9,8 @@
 #include <cmath>
 #include <algorithm> // for minmax_element
 #include <iostream>
+#include <stdexcept>
+#include <assert.h>
 
 /*
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
@@ -35,8 +37,9 @@ using namespace vkl;
 BaseProfile::BaseProfile(const BaseProfile& other){
   this->Npars = other.Npars;
   this->profile_type = other.profile_type;
-  this->ppars = other.ppars;
   this->upsilon = other.upsilon;
+  this->M_tot = other.M_tot;
+  this->ZP = other.ZP;
 }
 
 
@@ -114,13 +117,51 @@ void CollectionProfiles::write_all_profiles(const std::string filepath){
 
 
 
-//Derived class from BaseAnalyticFunction: Sersic
+// Class Sersic
 //===============================================================================================================
 Sersic::Sersic(std::map<std::string,double> pars): BaseProfile(9,"sersic"){
+  std::map<std::string,double>::iterator end = pars.end();
+
+  // Check that either M_tot or i_eff is present
+  std::map<std::string,double>::iterator it1,it2;
+  it1 = pars.find("M_tot");
+  it2 = pars.find("i_eff");
+  assert( !(it1 == end && it2 == end) && "Error: At least one of 'M_tot' or 'i_eff' must be present in Sersic profile constructor!" );
+  assert( !(it1 != end && it2 != end) && "Error: Both 'M_tot' and 'i_eff' cannot be present in Sersic profile constructor!" );
+
+  // Check that all mandatory parameters by name are present
+  std::vector<std::string> missing;  
+  std::vector<std::string> mandatory{"ZP","r_eff","x0","y0","n","pa","q"};
+  for(int i=0;i<mandatory.size();i++){
+    if( pars.find(mandatory[i]) == end ){
+      missing.push_back(mandatory[i]);
+    }
+  }
+  if( missing.size() != 0 ){
+    std::stringstream message("Error: The following parameters are missing in Sersic profile constructor: ");
+    for(int i=0;i<missing.size();i++){
+      message << " " << missing[i];
+    }
+    std::string tmp = message.str();
+    throw std::runtime_error(tmp.c_str());
+  }
+  
+  // ZP will never be updated so it is not touched by updateProfilePars
+  this->ZP = pars["ZP"];
+  
   updateProfilePars(pars);
 }
 
 Sersic::Sersic(const Sersic& other): BaseProfile(other){
+  this->Reff = other.Reff;
+  this->Ieff = other.Ieff;
+  this->x0   = other.x0;
+  this->y0   = other.y0;
+  this->n    = other.n;
+  this->pa   = other.pa;
+  this->q    = other.q;
+  this->upsilon_exp = other.upsilon_exp;
+
   this->p_xmin = other.p_xmin;
   this->p_xmax = other.p_xmax;
   this->p_ymin = other.p_ymin;
@@ -131,52 +172,72 @@ Sersic::Sersic(const Sersic& other): BaseProfile(other){
 }
 
 void Sersic::updateProfilePars(std::map<std::string,double> pars){
-  // First modify all parameter values that come from the outside
-  for(std::map<std::string,double>::iterator it=pars.begin();it!=pars.end();it++){
-    ppars[it->first] = it->second;
+  std::map<std::string,double>::iterator end = pars.end();
+
+  // Update BaseProfile parameter first
+  if( pars.find("upsilon") != end ){
+    this->upsilon = pars["upsilon"]; // upsilon is a base class variable
   }
-  // Then convert any of the following accordingly, if they exist in the incoming pars
-  if( pars.find("r_eff") != pars.end() | pars.find("q") != pars.end() ){
-    // r_eff must be the semi-major axis
-    this->rr = ppars["q"]*ppars["r_eff"];
+
+  // Single parameter updates
+  if( pars.find("x0") != end ){
+    this->x0 = pars["x0"];
   }
-  if( pars.find("n") != pars.end() ){
-    this->bn = 1.9992*ppars["n"] - 0.3271;//From Capaccioli 1989    
+  if( pars.find("y0") != end ){
+    this->y0 = pars["y0"];
   }
-  if( pars.find("pa") != pars.end() ){
-    ppars["pa"] = (pars["pa"] + 90.0) * 0.01745329251; // in rad
-    this->cospa = cos(ppars["pa"]);
-    this->sinpa = sin(ppars["pa"]);
+  if( pars.find("n") != end ){
+    this->n = pars["n"];
+    this->bn = 1.9992*this->n - 0.3271;//From Capaccioli 1989
   }
-  if( pars.find("M_tot") != pars.end() ){
+  if( pars.find("pa") != end ){
+    this->pa = (pars["pa"] + 90.0) * 0.01745329251; // in rad
+    this->cospa = cos(this->pa);
+    this->sinpa = sin(this->pa);
+  }
+  if( pars.find("upsilon_exp") != end ){
+    this->upsilon_exp = pars["upsilon_exp"];
+  }
+
+  // Update Reff and q that depend on each other
+  std::map<std::string,double>::iterator it_q,it_r;
+  it_q = pars.find("q");
+  it_r = pars.find("r_eff"); // r_eff must be the semi-major axis
+  if( it_q != end && it_r != end ){ // both 'q' and 'r_eff' are found
+    this->q = pars["q"];
+    this->Reff = this->q*pars["r_eff"];
+  } else if( it_q != end && it_r == end ){ // 'q' is found but not 'r_eff'
+    double old_q = this->q;
+    double old_Reff = this->Reff;
+    this->q = pars["q"];
+    this->Reff = this->q*(old_Reff/old_q);
+  } else if( it_q == end && it_r != end ){ // 'r_eff' is found but not 'q'
+    this->Reff = this->q*pars["r_eff"];
+  }
+
+  // Update M_tot (I_eff) and then I_eff (M_tot).
+  if( pars.find("M_tot") != end ){
     // See eq. 4 in Peng et al. 2010
-    double fac = pow(ppars["r_eff"],2)*2*M_PI*ppars["n"]*exp(this->bn)*tgamma(2*ppars["n"])*ppars["q"]/pow(this->bn,2*ppars["n"]);
-    ppars["i_eff"] = pow(10.0,-0.4*(ppars["M_tot"]-ppars["ZP"]))/fac;
-    //std::cout << "I_eff= " << ppars["i_eff"] << std::endl;
-  } else {
-    double fac = pow(ppars["r_eff"],2)*2*M_PI*ppars["n"]*exp(this->bn)*tgamma(2*ppars["n"])*ppars["q"]/pow(this->bn,2*ppars["n"]);
-    ppars["M_tot"] = -2.5*log10(fac*ppars["i_eff"]) + ppars["ZP"];
-    //std::cout << "M_tot= " << ppars["M_tot"] << std::endl;
+    this->M_tot = pars["M_tot"];
+    double fac = pow(this->Reff/this->q,2)*2*M_PI*this->n*exp(this->bn)*tgamma(2*this->n)*this->q/pow(this->bn,2*this->n);
+    this->Ieff = pow(10.0,-0.4*(this->M_tot-this->ZP))/fac;
+  } else if( pars.find("M_tot") != end ){
+    this->Ieff = pars["i_eff"];
+    double fac = pow(this->Reff/this->q,2)*2*M_PI*this->n*exp(this->bn)*tgamma(2*this->n)*this->q/pow(this->bn,2*this->n);
+    this->M_tot = -2.5*log10(fac*this->Ieff) + this->ZP;
   }
-  if( pars.find("upsilon") == pars.end() ){
-    // if not in given parameters set to zero (no mass from this profile)
-    this->upsilon = 0.0; // upsilon is a base class variable
-  }
-  if( pars.find("upsilon_exp") == pars.end() ){
-    // if not in given parameters set to zero (no radial dependence of mass-to-light)
-    ppars["upsilon_exp"] = 0.0;
-  }
+
   set_extent();
 }
 
 double Sersic::value(double x,double y){
   if( is_in_range(x,y) ){
     double u,v,r,fac2;
-    u =  (x - ppars["x0"])*this->cospa + (y - ppars["y0"])*this->sinpa;
-    v = -(x - ppars["x0"])*this->sinpa + (y - ppars["y0"])*this->cospa;
-    r = hypot(ppars["q"]*u,v);
-    fac2 = pow(r/this->rr,1.0/ppars["n"]) - 1.0;
-    return ppars["i_eff"]*exp(-this->bn*fac2);
+    u =  (x - this->x0)*this->cospa + (y - this->y0)*this->sinpa;
+    v = -(x - this->x0)*this->sinpa + (y - this->y0)*this->cospa;
+    r = hypot(this->q*u,v);
+    fac2 = pow(r/this->Reff,1.0/this->n) - 1.0;
+    return this->Ieff*exp(-this->bn*fac2);
   } else {
     return 0.0;
   }
@@ -186,10 +247,10 @@ double Sersic::value_to_mass(double x,double y){
   if( is_in_range(x,y) ){
     double u,v,r,fac,light;
     light = this->value(x,y);
-    u =  (x - ppars["x0"])*this->cospa + (y - ppars["y0"])*this->sinpa;
-    v = -(x - ppars["x0"])*this->sinpa + (y - ppars["y0"])*this->cospa;
-    r = hypot(ppars["q"]*u,v);
-    fac = this->upsilon*pow(r/this->rr,ppars["upsilon_exp"]);
+    u =  (x - this->x0)*this->cospa + (y - this->y0)*this->sinpa;
+    v = -(x - this->x0)*this->sinpa + (y - this->y0)*this->cospa;
+    r = hypot(this->q*u,v);
+    fac = this->upsilon*this->upsilon_solar*pow(r/this->Reff,this->upsilon_exp);
     return fac*light;
   } else {
     return 0.0;
@@ -212,69 +273,122 @@ void Sersic::get_extent(double& xmin,double& xmax,double& ymin,double& ymax){
 }
 
 void Sersic::set_extent(){
-  double dx = fabs(10*ppars["r_eff"]);
-  this->p_xmin = ppars["x0"] - dx;
-  this->p_xmax = ppars["x0"] + dx;
-  double dy = fabs(10*ppars["r_eff"]);
-  this->p_ymin = ppars["y0"] - dy;
-  this->p_ymax = ppars["y0"] + dy;
+  double dx = fabs(10*this->Reff);
+  this->p_xmin = this->x0 - dx;
+  this->p_xmax = this->x0 + dx;
+  double dy = fabs(10*this->Reff);
+  this->p_ymin = this->y0 - dy;
+  this->p_ymax = this->y0 + dy;
 }
 
-//Derived class from BaseAnalyticFunction: Gauss
+// Class Gauss
 //===============================================================================================================
 Gauss::Gauss(std::map<std::string,double> pars): BaseProfile(8,"gauss"){
+  std::map<std::string,double>::iterator end = pars.end();
+
+  // Check that either M_tot or i_eff is present
+  std::map<std::string,double>::iterator it1,it2;
+  it1 = pars.find("M_tot");
+  it2 = pars.find("i_eff");
+  assert( !(it1 == end && it2 == end) && "Error: At least one of 'M_tot' or 'i_eff' must be present in Gauss profile constructor!" );
+  assert( !(it1 != end && it2 != end) && "Error: Both 'M_tot' and 'i_eff' cannot be present in Gauss profile constructor!" );
+
+  // Check that all mandatory parameters by name are present
+  std::vector<std::string> missing;  
+  std::vector<std::string> mandatory{"ZP","r_eff","x0","y0","pa","q"};
+  for(int i=0;i<mandatory.size();i++){
+    if( pars.find(mandatory[i]) == end ){
+      missing.push_back(mandatory[i]);
+    }
+  }
+  if( missing.size() != 0 ){
+    std::stringstream message("Error: The following parameters are missing in Gauss profile constructor: ");
+    for(int i=0;i<missing.size();i++){
+      message << " " << missing[i];
+    }
+    std::string tmp = message.str();
+    throw std::runtime_error(tmp.c_str());
+  }
+  
+  // ZP will never be updated so it is not touched by updateProfilePars
+  this->ZP = pars["ZP"];
+
   updateProfilePars(pars);
 }
 
 Gauss::Gauss(const Gauss& other): BaseProfile(other){
+  this->Reff = other.Reff;
+  this->Ieff = other.Ieff;
+  this->x0   = other.x0;
+  this->y0   = other.y0;
+  this->pa   = other.pa;
+  this->q    = other.q;
+  this->upsilon_exp = other.upsilon_exp;
+
   this->p_xmin = other.p_xmin;
   this->p_xmax = other.p_xmax;
   this->p_ymin = other.p_ymin;
   this->p_ymax = other.p_ymax;
-  this->sdev = other.sdev;
+  this->sdev_fac = other.sdev_fac;
   this->cospa = other.cospa;
   this->sinpa = other.sinpa;
 }
 
 void Gauss::updateProfilePars(std::map<std::string,double> pars){
-  // First modify all parameter values that come from the outside
-  for(std::map<std::string,double>::iterator it=pars.begin();it!=pars.end();it++){
-    ppars[it->first] = it->second;
+  std::map<std::string,double>::iterator end = pars.end();
+
+  // Update BaseProfile parameter first
+  if( pars.find("ZP") != end ){
+    this->ZP = pars["ZP"];
+  }  
+  if( pars.find("upsilon") != end ){
+    this->upsilon = pars["upsilon"]; // upsilon is a base class variable
   }
-  // Then convert any of the following accordingly, if they exist in the incoming pars
-  if( pars.find("pa") != pars.end() ){
-    ppars["pa"] = (pars["pa"] + 90.0) * 0.01745329251; // in rad
-    this->cospa = cos(ppars["pa"]);
-    this->sinpa = sin(ppars["pa"]);
+
+  // Single parameter updates
+  if( pars.find("x0") != end ){
+    this->x0 = pars["x0"];
   }
-  if( pars.find("r_eff") != pars.end() ){
-    this->sdev = 2*ppars["r_eff"]*ppars["r_eff"];
+  if( pars.find("y0") != end ){
+    this->y0 = pars["y0"];
   }
-  if( pars.find("M_tot") != pars.end() ){
-    double fac = 2.0*M_PI*pow(ppars["r_eff"],2);
-    ppars["i_eff"] = ppars["q"]*pow(10.0,-0.4*ppars["M_tot"])/fac;
-  } else {
-    double fac = 2.0*M_PI*pow(ppars["r_eff"],2);
-    ppars["M_tot"] = -2.5*log10(fac*ppars["i_eff"]/ppars["q"]);
+  if( pars.find("pa") != end ){
+    this->pa = (pars["pa"] + 90.0) * 0.01745329251; // in rad
+    this->cospa = cos(this->pa);
+    this->sinpa = sin(this->pa);
   }
-  if( pars.find("upsilon") == pars.end() ){
-    // if not in given parameters set to zero (no mass from this profile)
-    this->upsilon = 0.0; // upsilon is a base class variable
+  if( pars.find("upsilon_exp") != end ){
+    this->upsilon_exp = pars["upsilon_exp"];
   }
-  if( pars.find("upsilon_exp") == pars.end() ){
-    // if not in given parameters set to zero (no radial dependence of mass-to-light)
-    ppars["upsilon_exp"] = 0.0;
+  if( pars.find("q") != end ){
+    this->q = pars["q"];
   }
+  if( pars.find("r_eff") != end ){
+    this->Reff = pars["r_eff"];
+    this->sdev_fac = 2.0*this->Reff*this->Reff;
+  }
+
+  // Update M_tot (I_eff) and then I_eff (M_tot).
+  if( pars.find("M_tot") != end ){
+    this->M_tot = pars["M_tot"];
+    double fac = M_PI*this->sdev_fac;
+    this->Ieff = this->q*pow(10.0,-0.4*(this->M_tot-this->ZP))/fac;
+  } else if( pars.find("i_eff") != end ){
+    this->Ieff = pars["i_eff"];
+    double fac = M_PI*this->sdev_fac;
+    this->M_tot = -2.5*log10(fac*this->Ieff/this->q) + this->ZP;
+  }
+  
   set_extent();
 }
 
 double Gauss::value(double x,double y){
   if( is_in_range(x,y) ){
     double u,v,r2;
-    u =   (x - ppars["x0"])*this->cospa + (y - ppars["y0"])*sinpa;
-    v = - (x - ppars["x0"])*this->sinpa + (y - ppars["y0"])*cospa;
-    r2 = (ppars["q"]*ppars["q"]*u*u + v*v)/this->sdev;
-    return ppars["i_eff"]*exp(-r2);
+    u =   (x - this->x0)*this->cospa + (y - this->y0)*this->sinpa;
+    v = - (x - this->x0)*this->sinpa + (y - this->y0)*this->cospa;
+    r2 = (this->q*this->q*u*u + v*v)/this->sdev_fac;
+    return this->Ieff*exp(-r2);
   } else {
     return 0.0;
   }
@@ -284,10 +398,10 @@ double Gauss::value_to_mass(double x,double y){
   if( is_in_range(x,y) ){
     double u,v,r,fac,light;
     light = this->value(x,y);
-    u =  (x - ppars["x0"])*this->cospa + (y - ppars["y0"])*this->sinpa;
-    v = -(x - ppars["x0"])*this->sinpa + (y - ppars["y0"])*this->cospa;
-    r = hypot(ppars["q"]*u,v);
-    fac = this->upsilon*pow(r/sqrt(this->sdev),ppars["upsilon_exp"]);
+    u =  (x - this->x0)*this->cospa + (y - this->y0)*this->sinpa;
+    v = -(x - this->x0)*this->sinpa + (y - this->y0)*this->cospa;
+    r = hypot(this->q*u,v);
+    fac = this->upsilon*this->upsilon_solar*pow(r/sqrt(this->Reff),this->upsilon_exp);
     return fac*light;
   } else {
     return 0.0;
@@ -310,25 +424,20 @@ void Gauss::get_extent(double& xmin,double& xmax,double& ymin,double& ymax){
 }
 
 void Gauss::set_extent(){
-  double dimg = 5.0*ppars["r_eff"];
-  this->p_xmin = ppars["x0"] - dimg;
-  this->p_xmax = ppars["x0"] + dimg;
-  this->p_ymin = ppars["y0"] - dimg;
-  this->p_ymax = ppars["y0"] + dimg;
+  double dimg = 5.0*this->Reff;
+  this->p_xmin = this->x0 - dimg;
+  this->p_xmax = this->x0 + dimg;
+  this->p_ymin = this->y0 - dimg;
+  this->p_ymax = this->y0 + dimg;
 }
 
 
 
 //Derived class from BaseProfile: Custom
 //===============================================================================================================
-Custom::Custom(std::string filepath,int Nx,int Ny,double xmin,double xmax,double ymin,double ymax,double Mtot,std::string interp,double upsilon): BaseProfile(1,"custom",upsilon),RectGrid(Nx,Ny,xmin,xmax,ymin,ymax,filepath){
-  this->Mtot = Mtot;
+Custom::Custom(std::string filepath,int Nx,int Ny,double xmin,double xmax,double ymin,double ymax,double ZP,double M_tot,std::string interp,double upsilon): BaseProfile(1,"custom",upsilon,ZP,M_tot),RectGrid(Nx,Ny,xmin,xmax,ymin,ymax,filepath){
   this->set_interp(interp);
   scaleProfile();
-}
-
-Custom::Custom(const Custom& other): BaseProfile(other),RectGrid(other){
-  this->Mtot = other.Mtot;
 }
 
 double Custom::value(double x,double y){
@@ -366,13 +475,13 @@ void Custom::get_extent(double& x_min,double& x_max,double& y_min,double& y_max)
 
 // private
 void Custom::scaleProfile(){
-  if( this->Mtot != 0.0 ){
+  if( this->M_tot != 0.0 ){
     double sum = 0.0;
     double dS = this->step_x*this->step_y;
     for(int i=0;i<this->Nz;i++){
       sum += this->z[i]*dS;
     }
-    double factor = pow(10.0,-0.4*this->Mtot)/sum;
+    double factor = pow(10.0,-0.4*this->M_tot)/sum;
     for(int i=0;i<this->Nz;i++){
       this->z[i] *= factor;
     }

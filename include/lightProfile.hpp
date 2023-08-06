@@ -18,9 +18,10 @@ namespace vkl {
   public:
     int Npars;
     std::string profile_type;
-    std::map<std::string,double> ppars;
     double upsilon = 0.0; // Needs to be in units of the solar mass-to-light ratio upsilon_solar.
-
+    double ZP;
+    double M_tot; // Total flux in mag according to the ZP
+    
     BaseProfile(){};
     BaseProfile(const BaseProfile& other);
     ~BaseProfile(){};
@@ -33,10 +34,9 @@ namespace vkl {
     
   protected:
     BaseProfile(int Npars,std::string profile_type): Npars(Npars), profile_type(profile_type){};
-    BaseProfile(int Npars,std::string profile_type,double upsilon): Npars(Npars), profile_type(profile_type), upsilon(upsilon) {};
-    
-  private:
-    double upsilon_solar = 5133; // kg/W
+    BaseProfile(int Npars,std::string profile_type,double upsilon,double ZP): Npars(Npars), profile_type(profile_type), upsilon(upsilon), ZP(ZP) {};
+    BaseProfile(int Npars,std::string profile_type,double upsilon,double ZP,double M_tot): Npars(Npars), profile_type(profile_type), upsilon(upsilon), ZP(ZP), M_tot(M_tot) {};
+    double upsilon_solar = 5133; // kg/W    
   };
 
 
@@ -57,6 +57,15 @@ namespace vkl {
 
   class Sersic: public BaseProfile {
   public:
+    double Reff; // Effective radius (intermediate axis)  [arcsec]
+    double Ieff; // Effective intensity [UNITS]
+    double x0;   // center y [arcsec]
+    double y0;   // center x [arcsec]
+    double n;    // Sersic exponent
+    double pa;   // position angle (anti-clockwise from the x axis) [degrees]
+    double q;    // minor-to-major axis ratio
+    double upsilon_exp = 0.0;    // mass-to-light ratio radial dependence exponent
+    
     Sersic(std::map<std::string,double> pars);
     Sersic(const Sersic& other);
     ~Sersic(){};
@@ -74,12 +83,19 @@ namespace vkl {
     double bn;
     double cospa;
     double sinpa;
-    double rr;
   };
 
 
   class Gauss: public BaseProfile {
   public:
+    double Reff; // Standard deviation [arcsec]
+    double Ieff;  // Effective intensity [UNITS]
+    double x0;    // center y [arcsec]
+    double y0;    // center x [arcsec]
+    double pa;    // position angle (anti-clockwise from the x axis) [degrees]
+    double q;     // minor-to-major axis ratio
+    double upsilon_exp = 0.0;    // mass-to-light ratio radial dependence exponent
+
     Gauss(std::map<std::string,double> pars);
     Gauss(const Gauss& other);
     ~Gauss(){};
@@ -94,15 +110,15 @@ namespace vkl {
     double p_xmax;
     double p_ymin;
     double p_ymax;  
-    double sdev;
     double cospa;
     double sinpa;
+    double sdev_fac;
   };
 
 
   class Custom: public BaseProfile,public RectGrid {
   public:
-    Custom(std::string filepath,int Nx,int Ny,double xmin,double xmax,double ymin,double ymax,double Mtot,std::string interp,double upsilon);
+    Custom(std::string filepath,int Nx,int Ny,double xmin,double xmax,double ymin,double ymax,double ZP,double M_tot,std::string interp,double upsilon);
     Custom(const Custom& other);  
     ~Custom(){};
     void updateProfilePars(std::map<std::string,double> pars){};
@@ -111,7 +127,6 @@ namespace vkl {
     bool is_in_range(double xin,double yin);
     void get_extent(double& xmin,double& xmax,double& ymin,double& ymax);
   private:
-    double Mtot;
     void scaleProfile();
   };
 
@@ -182,11 +197,13 @@ namespace vkl {
 	double xmax = std::stod(pars["xmax"]);
 	double ymin = std::stod(pars["ymin"]);
 	double ymax = std::stod(pars["ymax"]);
-	double Mtot;
+	double ZP = 0.0;
+	if( pars.find("ZP") != pars.end() ){
+	  ZP = std::stod(pars["ZP"]);
+	}
+	double M_tot = 0.0;
 	if( pars.find("M_tot") != pars.end() ){
-	  Mtot = std::stod(pars["M_tot"]);
-	} else {
-	  Mtot = 0.0;
+	  M_tot = std::stod(pars["M_tot"]);
 	}
 	double upsilon;
 	if( pars.find("upsilon") != pars.end() ){
@@ -194,7 +211,7 @@ namespace vkl {
 	} else {
 	  upsilon = 0.0;
 	}
-	return new Custom(filepath,Nx,Ny,xmin,xmax,ymin,ymax,Mtot,interp,upsilon);
+	return new Custom(filepath,Nx,Ny,xmin,xmax,ymin,ymax,ZP,M_tot,interp,upsilon);
       } else {
 	return NULL;
       }
