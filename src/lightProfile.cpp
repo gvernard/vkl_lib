@@ -47,8 +47,8 @@ double BaseProfile::integrate(int N){
   this->get_extent(xmin,xmax,ymin,ymax);
 
   double x,y;
-  double xstep = (xmax - xmin)/N; 
-  double ystep = (xmax - xmin)/N; 
+  double xstep = fabs(xmax - xmin)/N; 
+  double ystep = fabs(ymax - ymin)/N; 
   double area = xstep*ystep;
   double sum = 0.0;
   for(int i=0;i<N;i++){
@@ -293,10 +293,10 @@ void Sersic::get_extent(double& xmin,double& xmax,double& ymin,double& ymax){
 }
 
 void Sersic::set_extent(){
-  double dx = fabs(10*this->Reff);
+  double dx = fabs(3*this->Reff);
   this->p_xmin = this->x0 - dx;
   this->p_xmax = this->x0 + dx;
-  double dy = fabs(10*this->Reff);
+  double dy = fabs(3*this->Reff);
   this->p_ymin = this->y0 - dy;
   this->p_ymax = this->y0 + dy;
 }
