@@ -178,7 +178,7 @@ RectGrid RectGrid::embeddedNewGrid(int new_Nx,int new_Ny,std::string mode){
 	new_grid.z[i] = new_pix_area*new_grid.z[i]; // /counts[i];
       }
       return new_grid;
-    } else if( mode == "additive_density" ){
+    } else if( mode == "integrate_density" ){
       int i0,j0;
       for(int i=0;i<this->Ny;i++){
 	for(int j=0;j<this->Nx;j++){
@@ -204,6 +204,16 @@ RectGrid RectGrid::embeddedNewGrid(int new_Nx,int new_Ny,std::string mode){
     // throw exception
     return new_grid;	  
   }
+}
+
+void RectGrid::integrate(double& total_flux,double& total_flux_mag,double ZP){
+  total_flux = 0.0;
+  double area = this->step_x*this->step_y;
+  for(int i=0;i<this->Nz;i++){
+    total_flux += this->z[i];
+  }
+  total_flux *= area;
+  total_flux_mag = -2.5*log10(total_flux) + ZP;
 }
 
 bool RectGrid::point_in_grid(double x,double y){
