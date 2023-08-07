@@ -127,8 +127,6 @@ namespace vkl {
     double value_to_mass(double x,double y);
     bool is_in_range(double xin,double yin);
     void get_extent(double& xmin,double& xmax,double& ymin,double& ymax);
-  private:
-    void scaleProfile();
   };
 
   /*
@@ -202,10 +200,13 @@ namespace vkl {
 	if( pars.find("ZP") != pars.end() ){
 	  ZP = std::stod(pars["ZP"]);
 	}
+
+	// If M_tot is not given then the image is assumed to be in units of electrons/(s arcsec^2)
 	double M_tot = 0.0;
 	if( pars.find("M_tot") != pars.end() ){
 	  M_tot = std::stod(pars["M_tot"]);
 	}
+
 	double upsilon;
 	if( pars.find("upsilon") != pars.end() ){
 	  upsilon = std::stod(pars["upsilon"]);

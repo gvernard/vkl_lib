@@ -457,7 +457,30 @@ void Gauss::set_extent(){
 //===============================================================================================================
 Custom::Custom(std::string filepath,int Nx,int Ny,double xmin,double xmax,double ymin,double ymax,double ZP,double M_tot,std::string interp,double upsilon): BaseProfile(1,"custom",upsilon,ZP,M_tot),RectGrid(Nx,Ny,xmin,xmax,ymin,ymax,filepath){
   this->set_interp(interp);
-  scaleProfile();
+  
+  if( M_tot == 0.0 ){
+    // If M_tot is 0.0 then the given image is in units of electrons/(s arcsec^2) and we need to convert it to flux. We also calculate and set M_tot.
+    for(int i=0;i<this->Nz;i++){
+      this->z[i] = pow(10.0,-0.4*(this->z[i] - ZP));
+    }
+    double total_flux,total_flux_mag;
+    this->RectGrid::integrate(total_flux,total_flux_mag,ZP);
+    this->M_tot = total_flux_mag;
+  } else {
+    // If M_tot is given, then the given image is in units of flux and we recalibrate it by the total flux.
+    double new_total_flux = pow(10.0,-0.4*(this->M_tot - ZP));
+    double old_total_flux,dummy;
+    this->RectGrid::integrate(old_total_flux,dummy,ZP);
+
+    double factor = new_total_flux/old_total_flux;
+    for(int i=0;i<this->Nz;i++){
+      this->z[i] *= factor;
+    }
+  }
+
+  double total_flux,total_flux_mag;
+  this->RectGrid::integrate(total_flux,total_flux_mag,ZP);
+  std::cout << "Custom source total flux is: " << total_flux << " " << total_flux_mag << " (should be " << this->M_tot << ")" << std::endl;
 }
 
 double Custom::value(double x,double y){
@@ -493,20 +516,6 @@ void Custom::get_extent(double& x_min,double& x_max,double& y_min,double& y_max)
   y_max = this->ymax;
 }
 
-// private
-void Custom::scaleProfile(){
-  if( this->M_tot != 0.0 ){
-    double sum = 0.0;
-    double dS = this->step_x*this->step_y;
-    for(int i=0;i<this->Nz;i++){
-      sum += this->z[i]*dS;
-    }
-    double factor = pow(10.0,-0.4*this->M_tot)/sum;
-    for(int i=0;i<this->Nz;i++){
-      this->z[i] *= factor;
-    }
-  }
-}
 
 
 
