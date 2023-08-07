@@ -62,6 +62,23 @@ double BaseProfile::integrate(int N){
   return sum;  
 }
 
+double BaseProfile::integrate(double xmin,double xmax,double ymin,double ymax,int N){
+  double x,y;
+  double xstep = fabs(xmax - xmin)/N; 
+  double ystep = fabs(ymax - ymin)/N; 
+  double area = xstep*ystep;
+  double sum = 0.0;
+  for(int i=0;i<N;i++){
+    y = ymin + ystep/2.0 + i*ystep;
+    for(int j=0;j<N;j++){
+      x = xmin + xstep/2.0 + j*xstep;
+      sum += this->value(x,y);
+    }
+  }
+  sum *= area;
+  return sum;  
+}
+
 
 
 //Class: CollectionProfiles

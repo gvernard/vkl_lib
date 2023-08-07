@@ -32,7 +32,8 @@ namespace vkl {
     virtual bool is_in_range(double xin,double yin) = 0;
     virtual void get_extent(double& xmin,double& xmax,double& ymin,double& ymax) = 0;
     double integrate(int N);
-    
+    double integrate(double xmin,double xmax,double ymin,double ymax,int N);
+  
   protected:
     BaseProfile(int Npars,std::string profile_type): Npars(Npars), profile_type(profile_type){};
     BaseProfile(int Npars,std::string profile_type,double upsilon,double ZP): Npars(Npars), profile_type(profile_type), upsilon(upsilon), ZP(ZP) {};
