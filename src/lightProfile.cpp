@@ -287,7 +287,7 @@ double Sersic::value_to_mass(double x,double y){
     u =  (x - this->x0)*this->cospa + (y - this->y0)*this->sinpa;
     v = -(x - this->x0)*this->sinpa + (y - this->y0)*this->cospa;
     r = hypot(this->q*u,v);
-    fac = this->upsilon*this->upsilon_solar*pow(r/this->Reff,this->upsilon_exp);
+    fac = this->upsilon*pow(r/this->Reff,this->upsilon_exp);
     return fac*light;
   } else {
     return 0.0;
@@ -433,12 +433,12 @@ double Gauss::value(double x,double y){
 
 double Gauss::value_to_mass(double x,double y){
   if( is_in_range(x,y) ){
-    double u,v,r,fac,light;
+    double u,v,r2,fac,light;
     light = this->value(x,y);
     u =  (x - this->x0)*this->cospa + (y - this->y0)*this->sinpa;
     v = -(x - this->x0)*this->sinpa + (y - this->y0)*this->cospa;
-    r = hypot(this->q*u,v);
-    fac = this->upsilon*this->upsilon_solar*pow(r/sqrt(this->Reff),this->upsilon_exp);
+    r2 = (this->q*this->q*u*u + v*v);
+    fac = this->upsilon*pow(r2/this->sdev_fac,this->upsilon_exp);
     return fac*light;
   } else {
     return 0.0;

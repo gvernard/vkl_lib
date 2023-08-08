@@ -18,7 +18,7 @@ namespace vkl {
   public:
     int Npars;
     std::string profile_type;
-    double upsilon = 0.0; // Needs to be in units of the solar mass-to-light ratio upsilon_solar.
+    double upsilon = 0.0; // Mass-to-light ratio in [Sigma_crit * flux]^-1, i.e. critical density over flux, to obtain directly kappa_star instead of mass.
     double ZP;
     double M_tot; // Total flux in mag according to the ZP
     
@@ -38,7 +38,6 @@ namespace vkl {
     BaseProfile(int Npars,std::string profile_type): Npars(Npars), profile_type(profile_type){};
     BaseProfile(int Npars,std::string profile_type,double upsilon,double ZP): Npars(Npars), profile_type(profile_type), upsilon(upsilon), ZP(ZP) {};
     BaseProfile(int Npars,std::string profile_type,double upsilon,double ZP,double M_tot): Npars(Npars), profile_type(profile_type), upsilon(upsilon), ZP(ZP), M_tot(M_tot) {};
-    double upsilon_solar = 5133; // kg/W    
   };
 
 
