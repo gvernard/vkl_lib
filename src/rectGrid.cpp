@@ -206,14 +206,18 @@ RectGrid RectGrid::embeddedNewGrid(int new_Nx,int new_Ny,std::string mode){
   }
 }
 
-void RectGrid::integrate(double& total_flux,double& total_flux_mag,double ZP){
-  total_flux = 0.0;
-  double area = this->step_x*this->step_y;
+double RectGrid::sum(){
+  double total = 0.0;
   for(int i=0;i<this->Nz;i++){
-    total_flux += this->z[i];
+    total += this->z[i];
   }
-  total_flux *= area;
-  total_flux_mag = -2.5*log10(total_flux) + ZP;
+  return total;
+}
+
+void RectGrid::integrate(double& total_flux){
+  double area = this->step_x*this->step_y;
+  double sum = this->sum();
+  total_flux *= area*sum;
 }
 
 bool RectGrid::point_in_grid(double x,double y){

@@ -42,43 +42,6 @@ BaseProfile::BaseProfile(const BaseProfile& other){
   this->ZP = other.ZP;
 }
 
-double BaseProfile::integrate(int N){
-  double xmin,xmax,ymin,ymax;
-  this->get_extent(xmin,xmax,ymin,ymax);
-
-  double x,y;
-  double xstep = fabs(xmax - xmin)/N; 
-  double ystep = fabs(ymax - ymin)/N; 
-  double area = xstep*ystep;
-  double sum = 0.0;
-  for(int i=0;i<N;i++){
-    y = ymin + ystep/2.0 + i*ystep;
-    for(int j=0;j<N;j++){
-      x = xmin + xstep/2.0 + j*xstep;
-      sum += this->value(x,y);
-    }
-  }
-  sum *= area;
-  return sum;  
-}
-
-double BaseProfile::integrate(double xmin,double xmax,double ymin,double ymax,int N){
-  double x,y;
-  double xstep = fabs(xmax - xmin)/N; 
-  double ystep = fabs(ymax - ymin)/N; 
-  double area = xstep*ystep;
-  double sum = 0.0;
-  for(int i=0;i<N;i++){
-    y = ymin + ystep/2.0 + i*ystep;
-    for(int j=0;j<N;j++){
-      x = xmin + xstep/2.0 + j*xstep;
-      sum += this->value(x,y);
-    }
-  }
-  sum *= area;
-  return sum;  
-}
-
 
 
 //Class: CollectionProfiles
@@ -474,29 +437,23 @@ void Gauss::set_extent(){
 //===============================================================================================================
 Custom::Custom(std::string filepath,int Nx,int Ny,double xmin,double xmax,double ymin,double ymax,double ZP,double M_tot,std::string interp,double upsilon): BaseProfile(1,"custom",upsilon,ZP,M_tot),RectGrid(Nx,Ny,xmin,xmax,ymin,ymax,filepath){
   this->set_interp(interp);
-  
-  if( M_tot == 0.0 ){
-    // If M_tot is 0.0 then the given image is in units of electrons/(s arcsec^2) and we need to convert it to flux. We also calculate and set M_tot.
-    for(int i=0;i<this->Nz;i++){
-      this->z[i] = pow(10.0,-0.4*(this->z[i] - ZP));
-    }
-    double total_flux,total_flux_mag;
-    this->RectGrid::integrate(total_flux,total_flux_mag,ZP);
-    this->M_tot = total_flux_mag;
-  } else {
-    // If M_tot is given, then the given image is in units of flux and we recalibrate it by the total flux.
-    double new_total_flux = pow(10.0,-0.4*(this->M_tot - ZP));
-    double old_total_flux,dummy;
-    this->RectGrid::integrate(old_total_flux,dummy,ZP);
 
+  // The given image must always be in units of electrons/s.
+  if( M_tot == 0.0 ){
+    double total_flux = this->sum(total_flux);
+    this->M_tot = -2.5*log(total_flux) + ZP;
+  } else {
+    // If M_tot is given, then we recalibrate the given image by the total flux.
+    double new_total_flux = pow(10.0,-0.4*(this->M_tot - ZP));
+    double old_total_flux = this->sum();
     double factor = new_total_flux/old_total_flux;
     for(int i=0;i<this->Nz;i++){
       this->z[i] *= factor;
     }
   }
 
-  double total_flux,total_flux_mag;
-  this->RectGrid::integrate(total_flux,total_flux_mag,ZP);
+  double total_flux = this->sum();
+  double total_flux_mag = -2.5*log(total_flux) + ZP;
   std::cout << "Custom source total flux is: " << total_flux << " " << total_flux_mag << " (should be " << this->M_tot << ")" << std::endl;
 }
 

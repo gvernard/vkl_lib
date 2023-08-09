@@ -27,12 +27,10 @@ namespace vkl {
     ~BaseProfile(){};
 
     virtual void updateProfilePars(std::map<std::string,double> pars) = 0;
-    virtual double value(double x,double y) = 0;         // What light units does it return?
-    virtual double value_to_mass(double x,double y) = 0; // Must return kg/m^2
+    virtual double value(double x,double y) = 0;
+    virtual double value_to_mass(double x,double y) = 0;
     virtual bool is_in_range(double xin,double yin) = 0;
     virtual void get_extent(double& xmin,double& xmax,double& ymin,double& ymax) = 0;
-    double integrate(int N);
-    double integrate(double xmin,double xmax,double ymin,double ymax,int N);
   
   protected:
     BaseProfile(int Npars,std::string profile_type): Npars(Npars), profile_type(profile_type){};
@@ -59,7 +57,7 @@ namespace vkl {
   class Sersic: public BaseProfile {
   public:
     double Reff; // Effective radius (intermediate axis)  [arcsec]
-    double Ieff; // Effective intensity [UNITS]
+    double Ieff; // Effective intensity [electrons/s]
     double x0;   // center y [arcsec]
     double y0;   // center x [arcsec]
     double n;    // Sersic exponent
@@ -89,8 +87,8 @@ namespace vkl {
 
   class Gauss: public BaseProfile {
   public:
-    double Reff; // Standard deviation [arcsec]
-    double Ieff;  // Effective intensity [UNITS]
+    double Reff;  // Standard deviation [arcsec]
+    double Ieff;  // Effective intensity [electrons/s]
     double x0;    // center y [arcsec]
     double y0;    // center x [arcsec]
     double pa;    // position angle (anti-clockwise from the x axis) [degrees]
@@ -201,7 +199,6 @@ namespace vkl {
 	  ZP = std::stod(pars["ZP"]);
 	}
 
-	// If M_tot is not given then the image is assumed to be in units of electrons/(s arcsec^2)
 	double M_tot = 0.0;
 	if( pars.find("M_tot") != pars.end() ){
 	  M_tot = std::stod(pars["M_tot"]);

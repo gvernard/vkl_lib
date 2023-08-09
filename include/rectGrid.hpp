@@ -41,6 +41,7 @@ namespace vkl {
 
     void set_interp(std::string interp);
     RectGrid embeddedNewGrid(int new_Nx,int new_Ny,std::string mode="interp");
+    double sum();
     void integrate(double& total_flux,double& total_flux_mag,double ZP);
     
     bool point_in_grid(double x,double y);
