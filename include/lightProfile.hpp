@@ -27,11 +27,13 @@ namespace vkl {
     ~BaseProfile(){};
 
     virtual void updateProfilePars(std::map<std::string,double> pars) = 0;
-    virtual double value(double x,double y) = 0;
-    virtual double value_to_mass(double x,double y) = 0;
+    virtual double value(double x,double y) = 0;         // Must return [electrons/s]
+    virtual double value_to_mass(double x,double y) = 0; // Must return kappa_star, i.e. dimension-less units (or equivalently units of the critical density)
     virtual bool is_in_range(double xin,double yin) = 0;
     virtual void get_extent(double& xmin,double& xmax,double& ymin,double& ymax) = 0;
-  
+    double integrate(int N);
+    double integrate(double xmin,double xmax,double ymin,double ymax,int N);
+
   protected:
     BaseProfile(int Npars,std::string profile_type): Npars(Npars), profile_type(profile_type){};
     BaseProfile(int Npars,std::string profile_type,double upsilon,double ZP): Npars(Npars), profile_type(profile_type), upsilon(upsilon), ZP(ZP) {};

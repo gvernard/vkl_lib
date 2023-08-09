@@ -42,6 +42,43 @@ BaseProfile::BaseProfile(const BaseProfile& other){
   this->ZP = other.ZP;
 }
 
+double BaseProfile::integrate(int N){
+  double xmin,xmax,ymin,ymax;
+  this->get_extent(xmin,xmax,ymin,ymax);
+
+  RectGrid tmp(N,N,xmin,xmax,ymin,ymax);
+  double x,y;
+  double xstep = fabs(xmax - xmin)/N; 
+  double ystep = fabs(ymax - ymin)/N; 
+  for(int i=0;i<N;i++){
+    y = ymin + ystep/2.0 + i*ystep;
+    for(int j=0;j<N;j++){
+      x = xmin + xstep/2.0 + j*xstep;
+      tmp.z[i*N+j] = this->value(x,y);
+    }
+  }
+
+  double total_flux = tmp.integrate();
+  return total_flux;  
+}
+
+double BaseProfile::integrate(double xmin,double xmax,double ymin,double ymax,int N){
+  RectGrid tmp(N,N,xmin,xmax,ymin,ymax);
+  double x,y;
+  double xstep = fabs(xmax - xmin)/N; 
+  double ystep = fabs(ymax - ymin)/N; 
+  double area = xstep*ystep;
+  for(int i=0;i<N;i++){
+    y = ymin + ystep/2.0 + i*ystep;
+    for(int j=0;j<N;j++){
+      x = xmin + xstep/2.0 + j*xstep;
+      tmp.z[i*N+j] = this->value(x,y);
+    }
+  }
+
+  double total_flux = tmp.integrate();
+  return total_flux;
+}
 
 
 //Class: CollectionProfiles
@@ -440,19 +477,19 @@ Custom::Custom(std::string filepath,int Nx,int Ny,double xmin,double xmax,double
 
   // The given image must always be in units of electrons/s.
   if( M_tot == 0.0 ){
-    double total_flux = this->sum(total_flux);
+    double total_flux = this->RectGrid::integrate();
     this->M_tot = -2.5*log(total_flux) + ZP;
   } else {
     // If M_tot is given, then we recalibrate the given image by the total flux.
     double new_total_flux = pow(10.0,-0.4*(this->M_tot - ZP));
-    double old_total_flux = this->sum();
+    double old_total_flux = this->RectGrid::integrate();
     double factor = new_total_flux/old_total_flux;
     for(int i=0;i<this->Nz;i++){
       this->z[i] *= factor;
     }
   }
 
-  double total_flux = this->sum();
+  double total_flux = this->RectGrid::integrate();
   double total_flux_mag = -2.5*log(total_flux) + ZP;
   std::cout << "Custom source total flux is: " << total_flux << " " << total_flux_mag << " (should be " << this->M_tot << ")" << std::endl;
 }

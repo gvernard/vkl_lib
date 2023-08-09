@@ -214,10 +214,25 @@ double RectGrid::sum(){
   return total;
 }
 
-void RectGrid::integrate(double& total_flux){
+double RectGrid::integrate_density(){
   double area = this->step_x*this->step_y;
-  double sum = this->sum();
-  total_flux *= area*sum;
+  double mysum = this->sum();
+  return area*mysum;
+}
+
+double RectGrid::integrate(){
+  std::vector<double> partial_int(this->Ny);
+  for(int i=0;i<this->Ny;i++){
+    partial_int[i] = 0.0;
+    for(int j=0;j<this->Nx-1;j++){
+      partial_int[i] += this->step_x*(this->z[i*this->Nx+j] + this->z[i*this->Nx+j])/2.0;
+    }
+  }  
+  double total_flux = 0.0;
+  for(int i=0;i<this->Ny-1;i++){
+    total_flux += this->step_y*(partial_int[i]+partial_int[i+1])/2.0;
+  }
+  return total_flux;
 }
 
 bool RectGrid::point_in_grid(double x,double y){
