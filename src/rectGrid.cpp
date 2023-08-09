@@ -163,7 +163,7 @@ RectGrid RectGrid::embeddedNewGrid(int new_Nx,int new_Ny,std::string mode){
 	}
       }
       return new_grid;
-    } else if( mode == "integrate" ){
+    } else if( mode == "average" ){
       int* counts = (int*) calloc(new_grid.Nz,sizeof(int));
       int i0,j0;
       for(int i=0;i<this->Ny;i++){
@@ -173,9 +173,8 @@ RectGrid RectGrid::embeddedNewGrid(int new_Nx,int new_Ny,std::string mode){
 	  counts[i0*new_grid.Nx + j0] += 1;
 	}
       }
-      double new_pix_area = new_grid.step_x*new_grid.step_y;
       for(int i=0;i<new_grid.Nz;i++){
-	new_grid.z[i] = new_pix_area*new_grid.z[i]; // /counts[i];
+	new_grid.z[i] = new_grid.z[i]/counts[i];
       }
       return new_grid;
     } else if( mode == "integrate_density" ){
