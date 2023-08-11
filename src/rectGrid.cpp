@@ -224,7 +224,7 @@ double RectGrid::integrate(){
   for(int i=0;i<this->Ny;i++){
     partial_int[i] = 0.0;
     for(int j=0;j<this->Nx-1;j++){
-      partial_int[i] += this->step_x*(this->z[i*this->Nx+j] + this->z[i*this->Nx+j])/2.0;
+      partial_int[i] += this->step_x*(this->z[i*this->Nx+j] + this->z[i*this->Nx+j+1])/2.0;
     }
   }  
   double total_flux = 0.0;
