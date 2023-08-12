@@ -45,39 +45,17 @@ BaseProfile::BaseProfile(const BaseProfile& other){
 double BaseProfile::integrate(int N){
   double xmin,xmax,ymin,ymax;
   this->get_extent(xmin,xmax,ymin,ymax);
-
-  RectGrid tmp(N,N,xmin,xmax,ymin,ymax);
-  double x,y;
-  double xstep = fabs(xmax - xmin)/N; 
-  double ystep = fabs(ymax - ymin)/N; 
-  for(int i=0;i<N;i++){
-    y = ymin + ystep/2.0 + i*ystep;
-    for(int j=0;j<N;j++){
-      x = xmin + xstep/2.0 + j*xstep;
-      tmp.z[i*N+j] = this->value(x,y);
-    }
-  }
-
-  double total_flux = tmp.integrate();
-  return total_flux;  
+  return this->integrate(xmin,xmax,ymin,ymax,N);
 }
 
 double BaseProfile::integrate(double xmin,double xmax,double ymin,double ymax,int N){
   RectGrid tmp(N,N,xmin,xmax,ymin,ymax);
-  double x,y;
-  double xstep = fabs(xmax - xmin)/N; 
-  double ystep = fabs(ymax - ymin)/N; 
-  double area = xstep*ystep;
   for(int i=0;i<N;i++){
-    y = ymin + ystep/2.0 + i*ystep;
     for(int j=0;j<N;j++){
-      x = xmin + xstep/2.0 + j*xstep;
-      tmp.z[i*N+j] = this->value(x,y);
+      tmp.z[i*N+j] = this->value(tmp.center_x[j],tmp.center_y[i]);
     }
   }
-
-  double total_flux = tmp.integrate();
-  return total_flux;
+  return tmp.integrate();
 }
 
 
