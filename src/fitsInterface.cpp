@@ -43,12 +43,12 @@ void FitsInterface::writeFits(int Nx,int Ny,double* z,std::vector<std::string> k
 
   std::vector<long> extAx(2,(long) Ny);
   CCfits::ExtHDU* imageExt = pFits->addImage("NEW-EXTENSION",FLOAT_IMG,extAx);
-  
+
   std::valarray<float> array(Ntot);
   long count = 0;
   for(int i=0;i<Ny;i++){
     for(int j=0;j<Nx;j++){
-      //array[(Ni-1-i)*Nj+j] = (float) z[count];
+      //array[(Ny-1-i)*Nx+j] = (float) z[count];
       array[i*Nx+j] = (float) z[count];
       count++;
     }

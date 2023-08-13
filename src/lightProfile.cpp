@@ -217,7 +217,7 @@ void Sersic::updateProfilePars(std::map<std::string,double> pars){
   // Update Reff and q that depend on each other
   std::map<std::string,double>::iterator it_q,it_r;
   it_q = pars.find("q");
-  it_r = pars.find("r_eff"); // r_eff must be the semi-major axis
+  it_r = pars.find("r_eff"); // ATTENTION: r_eff must be the semi-major axis, but Reff is the intermediate axis
   if( it_q != end && it_r != end ){ // both 'q' and 'r_eff' are found
     this->q = pars["q"];
     this->Reff = this->q*pars["r_eff"];
@@ -236,26 +236,28 @@ void Sersic::updateProfilePars(std::map<std::string,double> pars){
     this->M_tot = pars["M_tot"];
     double fac = pow(this->Reff/this->q,2)*2*M_PI*this->n*exp(this->bn)*tgamma(2*this->n)*this->q/pow(this->bn,2*this->n);
     this->Ieff = pow(10.0,-0.4*(this->M_tot-this->ZP))/fac;
-  } else if( pars.find("M_tot") != end ){
+    std::cout << "Sersic Ieff= " << this->Ieff << std::endl;
+  } else if( pars.find("i_eff") != end ){
     this->Ieff = pars["i_eff"];
     double fac = pow(this->Reff/this->q,2)*2*M_PI*this->n*exp(this->bn)*tgamma(2*this->n)*this->q/pow(this->bn,2*this->n);
     this->M_tot = -2.5*log10(fac*this->Ieff) + this->ZP;
+    std::cout << "Sersic M_tot= " << this->M_tot << std::endl;
   }
 
   set_extent();
 }
 
 double Sersic::value(double x,double y){
-  if( is_in_range(x,y) ){
+  //  if( is_in_range(x,y) ){
     double u,v,r,fac2;
     u =  (x - this->x0)*this->cospa + (y - this->y0)*this->sinpa;
     v = -(x - this->x0)*this->sinpa + (y - this->y0)*this->cospa;
     r = hypot(this->q*u,v);
     fac2 = pow(r/this->Reff,1.0/this->n) - 1.0;
     return this->Ieff*exp(-this->bn*fac2);
-  } else {
-    return 0.0;
-  }
+    //  } else {
+    //    return 0.0;
+    //  }
 }
 
 double Sersic::value_to_mass(double x,double y){
@@ -288,10 +290,10 @@ void Sersic::get_extent(double& xmin,double& xmax,double& ymin,double& ymax){
 }
 
 void Sersic::set_extent(){
-  double dx = fabs(3*this->Reff);
+  double dx = fabs(5*this->Reff);
   this->p_xmin = this->x0 - dx;
   this->p_xmax = this->x0 + dx;
-  double dy = fabs(3*this->Reff);
+  double dy = fabs(5*this->Reff);
   this->p_ymin = this->y0 - dy;
   this->p_ymax = this->y0 + dy;
 }
@@ -388,25 +390,27 @@ void Gauss::updateProfilePars(std::map<std::string,double> pars){
     this->M_tot = pars["M_tot"];
     double fac = M_PI*this->sdev_fac;
     this->Ieff = this->q*pow(10.0,-0.4*(this->M_tot-this->ZP))/fac;
+    std::cout << "Gauss Ieff= " << this->Ieff << std::endl;
   } else if( pars.find("i_eff") != end ){
     this->Ieff = pars["i_eff"];
     double fac = M_PI*this->sdev_fac;
     this->M_tot = -2.5*log10(fac*this->Ieff/this->q) + this->ZP;
+    std::cout << "Gauss M_tot= " << this->M_tot << std::endl;
   }
   
   set_extent();
 }
 
 double Gauss::value(double x,double y){
-  if( is_in_range(x,y) ){
-    double u,v,r2;
-    u =   (x - this->x0)*this->cospa + (y - this->y0)*this->sinpa;
-    v = - (x - this->x0)*this->sinpa + (y - this->y0)*this->cospa;
-    r2 = (this->q*this->q*u*u + v*v)/this->sdev_fac;
-    return this->Ieff*exp(-r2);
-  } else {
-    return 0.0;
-  }
+  //  if( is_in_range(x,y) ){
+  double u,v,r2;
+  u =   (x - this->x0)*this->cospa + (y - this->y0)*this->sinpa;
+  v = - (x - this->x0)*this->sinpa + (y - this->y0)*this->cospa;
+  r2 = (this->q*this->q*u*u + v*v)/this->sdev_fac;
+  return this->Ieff*exp(-r2);
+  //} else {
+  //return 0.0;
+  //}
 }
 
 double Gauss::value_to_mass(double x,double y){

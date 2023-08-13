@@ -58,7 +58,7 @@ namespace vkl {
 
   class Sersic: public BaseProfile {
   public:
-    double Reff; // Effective radius (intermediate axis)  [arcsec]
+    double Reff; // Effective radius (this is the intermediate axis, but r_eff is the major axis)  [arcsec]
     double Ieff; // Effective intensity [electrons/s]
     double x0;   // center y [arcsec]
     double y0;   // center x [arcsec]
