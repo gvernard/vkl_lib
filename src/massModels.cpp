@@ -35,19 +35,7 @@ BaseMassModel::BaseMassModel(const BaseMassModel& other){
 CollectionMassModels::CollectionMassModels(const CollectionMassModels& other){
   this->models.resize(other.models.size());
   for(int i=0;i<other.models.size();i++){
-    if( other.models[i]->mass_type == "sie" ){
-      Sie* ptr = static_cast<Sie*> (other.models[i]);
-      this->models[i] = new Sie(*ptr);
-    } else if( other.models[i]->mass_type == "spemd" ){
-      Spemd* ptr = static_cast<Spemd*> (other.models[i]);
-      this->models[i] = new Spemd(*ptr);
-    } else if( other.models[i]->mass_type == "external_shear" ){
-      ExternalShear* ptr = static_cast<ExternalShear*> (other.models[i]);
-      this->models[i] = new ExternalShear(*ptr);
-    } else if( other.models[i]->mass_type == "pert" ){
-      Pert* ptr = static_cast<Pert*> (other.models[i]);
-      this->models[i] = new Pert(*ptr);
-    } 
+    this->models[i] = FactoryMassModel::getInstance()->copyMassModel(other.models[i]);
   }
 }
 

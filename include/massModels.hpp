@@ -154,6 +154,24 @@ namespace vkl {
       }
     }
 
+    BaseMassModel* copyMassModel(BaseMassModel* other){
+      if( other->mass_type == "sie" ){
+	Sie* ptr = static_cast<Sie*> (other);
+	return new Sie(*ptr);
+      } else if( other->mass_type == "spemd" ){
+	Spemd* ptr = static_cast<Spemd*> (other);
+	return new Spemd(*ptr);
+      } else if( other->mass_type == "external_shear" ){
+	ExternalShear* ptr = static_cast<ExternalShear*> (other);
+	return new ExternalShear(*ptr);
+      } else if( other->mass_type == "pert" ){
+	Pert* ptr = static_cast<Pert*> (other);
+        return new Pert(*ptr);
+      } else {
+	return NULL;
+      }
+    }
+    
   private:
     FactoryMassModel(){};
   };
