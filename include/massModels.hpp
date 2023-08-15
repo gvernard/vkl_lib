@@ -18,6 +18,7 @@ namespace vkl {
     std::map<std::string,double> mpars;
 
     BaseMassModel(){};
+    BaseMassModel(const BaseMassModel& other);
     ~BaseMassModel(){};
   
     virtual void updateMassPars(std::map<std::string,double> pars) = 0;   // for parametric mass models
@@ -52,6 +53,7 @@ namespace vkl {
   class ExternalShear: public BaseMassModel{
   public:
     ExternalShear(std::map<std::string,double> pars);
+    ExternalShear(const ExternalShear& other) : BaseMassModel(other){};
     void updateMassPars(std::map<std::string,double> pars);
     void updateMassPars(std::string way,double* new_dpsi){};
     void defl(double xin,double yin,double& xout,double& yout);
@@ -64,6 +66,7 @@ namespace vkl {
   class Sie: public BaseMassModel{
   public:
     Sie(std::map<std::string,double> pars);
+    Sie(const Sie& other) : BaseMassModel(other){}
     void updateMassPars(std::map<std::string,double> pars);
     void updateMassPars(std::string way,double* new_dpsi){};
     void defl(double xin,double yin,double& xout,double& yout);
@@ -78,6 +81,7 @@ namespace vkl {
   class Spemd: public BaseMassModel{
   public:
     Spemd(std::map<std::string,double> pars);
+    Spemd(const Spemd& other) : BaseMassModel(other){}
     void updateMassPars(std::map<std::string,double> pars);
     void updateMassPars(std::string way,double* new_dpsi){};
     void defl(double xin,double yin,double& xout,double& yout);
@@ -92,6 +96,7 @@ namespace vkl {
     Pert(int Nx,int Ny,double xmin,double xmax,double ymin,double ymax);
     Pert(int Nx,int Ny,double xmin,double xmax,double ymin,double ymax,std::string filepath);
     Pert(int Nx,int Ny,ImagePlane* image);
+    Pert(const Pert& other) : BaseMassModel(other),FixedSource(other){}
     ~Pert(){};
     void updateMassPars(std::map<std::string,double> pars){};
     void updateMassPars(std::string way,double* new_dpsi);
