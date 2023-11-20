@@ -14,8 +14,8 @@ using namespace vkl;
 //ImagePlane class implementation
 //============================================================================================
 ImagePlane::ImagePlane(const std::string filepath,int Nx,int Ny,double xmin,double xmax,double ymin,double ymax){
-  Nx   = Ny;
-  Ny   = Nx;
+  this->Nx   = Ny;
+  this->Ny   = Nx;
   grid = new RectGrid(Nx,Ny,xmin,xmax,ymin,ymax,filepath);
 
   Nm   = Nx*Ny;
@@ -28,8 +28,8 @@ ImagePlane::ImagePlane(const std::string filepath,int Nx,int Ny,double xmin,doub
 }
 
 ImagePlane::ImagePlane(int Nx,int Ny,double xmin,double xmax,double ymin,double ymax){
-  Nx   = Nx;
-  Ny   = Ny;
+  this->Nx   = Nx;
+  this->Ny   = Ny;
   grid = new RectGrid(Nx,Ny,xmin,xmax,ymin,ymax);
 
   Nm   = Nx*Ny;
