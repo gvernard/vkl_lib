@@ -90,7 +90,6 @@ CollectionProfiles JsonParsers::parse_profile(const Json::Value json,std::vector
       }
     }
     pars.insert( std::pair<std::string,std::string> ("ZP",std::to_string(ZP[k])) ); // Adding the ZP
-
     // for(std::map<std::string,std::string>::const_iterator it = pars.begin();it != pars.end(); ++it){
     //   std::cout << it->first << " " << it->second << std::endl;
     // }

@@ -457,10 +457,10 @@ void Gauss::set_extent(){
 Custom::Custom(std::string filepath,int Nx,int Ny,double xmin,double xmax,double ymin,double ymax,double ZP,double M_tot,std::string interp,double upsilon): BaseProfile(1,"custom",upsilon,ZP,M_tot),RectGrid(Nx,Ny,xmin,xmax,ymin,ymax,filepath){
   this->set_interp(interp);
 
-  // The given image must always be in units of electrons/s.
+  // The given image must always be in units of electrons/(s arcsec^2).
   if( M_tot == 0.0 ){
     double total_flux = this->RectGrid::integrate();
-    this->M_tot = -2.5*log(total_flux) + ZP;
+    this->M_tot = -2.5*log10(total_flux) + ZP;
   } else {
     // If M_tot is given, then we recalibrate the given image by the total flux.
     double new_total_flux = pow(10.0,-0.4*(this->M_tot - ZP));
@@ -472,7 +472,7 @@ Custom::Custom(std::string filepath,int Nx,int Ny,double xmin,double xmax,double
   }
 
   double total_flux = this->RectGrid::integrate();
-  double total_flux_mag = -2.5*log(total_flux) + ZP;
+  double total_flux_mag = -2.5*log10(total_flux) + ZP;
   std::cout << "Custom source total flux is: " << total_flux << " " << total_flux_mag << " (should be " << this->M_tot << ")" << std::endl;
 }
 
