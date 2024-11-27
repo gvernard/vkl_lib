@@ -360,6 +360,100 @@ void Spemd::getExtent(double& xmin,double& xmax,double& ymin,double& ymax){
   ymax = this->mpars["y0"] + 2.5*this->mpars["theta_E"];
 }
 
+
+//Derived class from BaseMassModel: Multipole
+//===============================================================================================================
+Multipole::Multipole(std::map<std::string,double> pars): BaseMassModel(9,"multipole"){
+  updateMassPars(pars);
+}
+
+void Multipole::updateMassPars(std::map<std::string,double> pars){
+  // First modify all parameter values that come from the outside
+  for(std::map<std::string,double>::iterator it=pars.begin();it!=pars.end();it++){
+    mpars[it->first] = it->second;
+  }
+  // Then convert any of the following accordingly, if they exist in the incoming pars
+  if( pars.find("phi_m") != pars.end() ){
+    mpars["phi_m"] = (mpars["phi_m"] + 90.0) * 0.01745329251; // in rad
+  }
+  //mpars["fac"] = ( pow(mpars["theta_E"],mpars["gam"]-1.0)*mpars["k_m"] )/( pow(3.0-mpars["gam"],2) - mpars["m"]*mpars["m"] );
+  mpars["fac"] = (3.0-mpars["gam"])*( pow(mpars["theta_E"],mpars["gam"]-1.0)*mpars["k_m"] )/( pow(3.0-mpars["gam"],2) - mpars["m"]*mpars["m"] );
+
+  //  mpars["fac"] = ( pow(mpars["theta_E"]/sqrt(mpars["q"]),2*mpars["e"])*(1.0-mpars["e"]);
+}
+
+void Multipole::defl(double xin,double yin,double& xout,double& yout){
+  //rotate according to position angle and translate to the lens center
+  //double x_t =  (xin-mpars["x0"])*cos(mpars["pa"]) + (yin-mpars["y0"])*sin(mpars["pa"]);
+  //double y_t = -(xin-mpars["x0"])*sin(mpars["pa"]) + (yin-mpars["y0"])*cos(mpars["pa"]);
+  double x_t = xin - mpars["x0"];
+  double y_t = yin - mpars["y0"];
+  
+  this->check_close_to_origin(x_t,y_t);
+
+  double r   = hypot(x_t,y_t);
+  double phi = atan2(y_t,x_t);
+  double phi_term = mpars["m"]*(phi-mpars["phi_m"]);
+
+  double psi_r   =  mpars["fac"]*pow(r,2.0-mpars["gam"])*(3.0-mpars["gam"])*cos(phi_term);
+  double psi_phi = -mpars["fac"]*pow(r,2.0-mpars["gam"])*mpars["m"]*sin(phi_term);
+
+  xout = cos(phi)*psi_r - sin(phi)*psi_phi/r;
+  yout = sin(phi)*psi_r + cos(phi)*psi_phi/r;
+
+  //double ax_t = cos(phi)*psi_r - sin(phi)*psi_phi/r;
+  //double ay_t = sin(phi)*psi_r + cos(phi)*psi_phi/r;
+
+  //rotate back according to position angle, no need to translate
+  //xout = ax_t*cos(mpars["pa"]) - ay_t*sin(mpars["pa"]);
+  //yout = ax_t*sin(mpars["pa"]) + ay_t*cos(mpars["pa"]);
+}
+
+double Multipole::kappa(double xin,double yin){
+  return 0;
+}
+
+void Multipole::gamma(double xin,double yin,double& gamma_mag,double& gamma_phi){
+}
+  
+double Multipole::psi(double xin,double yin){
+  //rotate according to position angle and translate to the lens center
+  double x_t =  (xin-mpars["x0"])*cos(mpars["pa"]) + (yin-mpars["y0"])*sin(mpars["pa"]);
+  double y_t = -(xin-mpars["x0"])*sin(mpars["pa"]) + (yin-mpars["y0"])*cos(mpars["pa"]);
+
+  this->check_close_to_origin(x_t,y_t);
+
+  double r   = hypot(x_t,y_t);
+  double phi = atan2(y_t,x_t);
+  double phi_term = mpars["m"]*(phi-mpars["phi_m"]);
+  
+  double psi = mpars["fac"]*pow(r,3.0-mpars["e"])*cos(phi_term);
+  return psi;
+}
+
+void Multipole::check_close_to_origin(double& x_t,double& y_t){
+  if( fabs(x_t) < 0.0001 && fabs(y_t) < 0.0001 ){
+    if( std::signbit(x_t) ){
+      x_t = -0.0001;
+    } else {
+      x_t =  0.0001;
+    }
+    if( std::signbit(y_t) ){
+      y_t = -0.0001;
+    } else {
+      y_t =  0.0001;
+    }
+  }
+}
+
+void Multipole::getExtent(double& xmin,double& xmax,double& ymin,double& ymax){
+  xmin = this->mpars["x0"] - 2.5*this->mpars["theta_E"];
+  xmax = this->mpars["x0"] + 2.5*this->mpars["theta_E"];
+  ymin = this->mpars["y0"] - 2.5*this->mpars["theta_E"];
+  ymax = this->mpars["y0"] + 2.5*this->mpars["theta_E"];
+}
+
+
 //Derived class from BaseMassModel: Pert (perturbations on a grid)
 //===============================================================================================================
 Pert::Pert(int Nx,int Ny,double xmin,double xmax,double ymin,double ymax): BaseMassModel(Nx*Ny,"pert"),FixedSource(Nx,Ny,xmin,xmax,ymin,ymax){};
@@ -419,6 +513,14 @@ void Pert::getExtent(double& xmin,double& xmax,double& ymin,double& ymax){
   ymin = this->ymin;
   ymax = this->ymax;
 }
+
+
+
+
+
+
+
+
 
 
 //Derived class from BaseMassModel: ADD YOUR DESIRED MASS MODEL IMPLEMENTATION HERE

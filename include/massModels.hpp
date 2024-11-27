@@ -91,6 +91,21 @@ namespace vkl {
     void getExtent(double& xmin,double& xmax,double& ymin,double& ymax);
   };
 
+  class Multipole: public BaseMassModel{
+  public:
+    Multipole(std::map<std::string,double> pars);
+    Multipole(const Multipole& other) : BaseMassModel(other){}
+    void updateMassPars(std::map<std::string,double> pars);
+    void updateMassPars(std::string way,double* new_dpsi){};
+    void defl(double xin,double yin,double& xout,double& yout);
+    double kappa(double xin,double yin);
+    void gamma(double xin,double yin,double& gamma_mag,double& gamma_phi);
+    double psi(double xin,double yin);
+    void getExtent(double& xmin,double& xmax,double& ymin,double& ymax);
+  private:
+    void check_close_to_origin(double& x,double& y);
+  };
+    
   class Pert: public BaseMassModel,public FixedSource {
   public:
     Pert(int Nx,int Ny,double xmin,double xmax,double ymin,double ymax);
@@ -134,6 +149,12 @@ namespace vkl {
 	  tmp_pars.insert( std::pair<std::string,double>(it->first,std::stod(it->second)) );
 	}
 	return new Spemd(tmp_pars);
+      }	else if( model_name == "multipole" ){
+	std::map<std::string,double> tmp_pars;
+	for(std::map<std::string,std::string>::iterator it=pars.begin();it!=pars.end();it++){
+	  tmp_pars.insert( std::pair<std::string,double>(it->first,std::stod(it->second)) );
+	}
+	return new Multipole(tmp_pars);
       } else if( model_name == "external_shear" ){
 	std::map<std::string,double> tmp_pars;
 	for(std::map<std::string,std::string>::iterator it=pars.begin();it!=pars.end();it++){
